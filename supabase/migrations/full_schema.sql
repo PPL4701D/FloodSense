@@ -2,7 +2,6 @@
 -- PostgreSQL database dump
 --
 
-\restrict gDcqX2p3xVbODHG9QoyN2TlF4dStjZKCa0ltnYcLkcXhHO881KineYDkfNSj2IV
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 18.1
@@ -1486,5 +1485,4 @@ CREATE POLICY votes_update_own ON public.votes FOR UPDATE USING ((auth.uid() = u
 -- PostgreSQL database dump complete
 --
 
-\unrestrict gDcqX2p3xVbODHG9QoyN2TlF4dStjZKCa0ltnYcLkcXhHO881KineYDkfNSj2IV
 
