@@ -37,8 +37,6 @@ function LoginContent() {
     if (error) {
       if (error.message.includes('Invalid login credentials')) {
         setServerError('Email atau password salah');
-      } else if (error.message.includes('Email not confirmed')) {
-        setServerError('Email belum diverifikasi. Cek inbox Anda.');
       } else {
         setServerError(error.message);
       }
