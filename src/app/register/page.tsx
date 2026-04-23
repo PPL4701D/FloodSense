@@ -5,10 +5,12 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { registerSchema, type RegisterFormData } from '@/lib/validators/auth';
 import { createClient } from '@/lib/supabase/client';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Eye, EyeOff, Mail, Lock, User, Droplets, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -25,12 +27,11 @@ export default function RegisterPage() {
 
   const onSubmit = async (data: RegisterFormData) => {
     setServerError(null);
-    const { error } = await supabase.auth.signUp({
+    const { data: signUpData, error } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
       options: {
         data: { full_name: data.full_name },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 
@@ -40,6 +41,12 @@ export default function RegisterPage() {
       } else {
         setServerError(error.message);
       }
+      return;
+    }
+
+    if (signUpData.session) {
+      router.push('/');
+      router.refresh();
       return;
     }
 
@@ -59,10 +66,10 @@ export default function RegisterPage() {
           </div>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.75rem' }}>Pendaftaran Berhasil!</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: '1.5rem', lineHeight: 1.6 }}>
-            Kami telah mengirimkan email verifikasi ke alamat email Anda. Silakan cek inbox dan klik link verifikasi untuk mengaktifkan akun.
+            Akun Anda telah berhasil dibuat. Silakan masuk untuk melanjutkan.
           </p>
           <Link href="/login" className="btn btn-primary" style={{ width: '100%' }}>
-            Kembali ke Halaman Masuk
+            Masuk Sekarang
           </Link>
         </div>
       </div>
