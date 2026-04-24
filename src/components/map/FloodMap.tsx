@@ -6,11 +6,12 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useMapStore } from '@/stores/mapStore';
 import { useRealtimeReports } from '@/lib/hooks/useRealtimeReports';
+import { useAreaStatus } from '@/lib/hooks/useAreaStatus';
 import HeatmapLayer from './HeatmapLayer';
 import ClusterLayer from './ClusterLayer';
 import LayerControl from './LayerControl';
-import type { MapReport, SeverityLevel } from '@/types/database';
-import { SEVERITY_LABELS } from '@/types/database';
+import type { MapReport, SeverityLevel, AreaStatusLevel } from '@/types/database';
+import { SEVERITY_LABELS, AREA_STATUS_COLORS, AREA_STATUS_LABELS } from '@/types/database';
 import { Navigation, AlertTriangle, Droplets, Loader2, Info } from 'lucide-react';
 import VoteButtons from '@/components/reports/VoteButtons';
 import Link from 'next/link';
@@ -32,27 +33,51 @@ const SEVERITY_COLORS: Record<SeverityLevel, string> = {
   sangat_berat: '#ef4444',
 };
 
-function createSeverityIcon(severity: SeverityLevel) {
-  const color = SEVERITY_COLORS[severity];
+function createSeverityIcon(severity: SeverityLevel, areaStatus?: AreaStatusLevel) {
+  const severityColor = SEVERITY_COLORS[severity];
+  const showRing = areaStatus && areaStatus !== 'normal';
+  const ringColor = showRing ? AREA_STATUS_COLORS[areaStatus] : null;
+  const size = showRing ? 38 : 28;
+  const half = size / 2;
+
+  const ringHtml = ringColor
+    ? `<div style="
+        position: absolute;
+        width: ${size}px; height: ${size}px;
+        border-radius: 50%;
+        border: 2.5px solid ${ringColor};
+        box-shadow: 0 0 8px ${ringColor}99;
+        animation: area-status-ring-pulse 2s ease-in-out infinite;
+      "></div>`
+    : '';
+
   return L.divIcon({
     html: `
       <div style="
-        width: 28px; height: 28px;
-        background: ${color};
-        border: 3px solid rgba(255,255,255,0.9);
-        border-radius: 50%;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        position: relative;
+        width: ${size}px; height: ${size}px;
         display: flex; align-items: center; justify-content: center;
       ">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
-          <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
-        </svg>
+        ${ringHtml}
+        <div style="
+          width: 28px; height: 28px;
+          background: ${severityColor};
+          border: 3px solid rgba(255,255,255,0.9);
+          border-radius: 50%;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+          display: flex; align-items: center; justify-content: center;
+          position: relative; z-index: 1;
+        ">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+            <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+          </svg>
+        </div>
       </div>
     `,
     className: '',
-    iconSize: [28, 28],
-    iconAnchor: [14, 14],
-    popupAnchor: [0, -14],
+    iconSize: [size, size],
+    iconAnchor: [half, half],
+    popupAnchor: [0, -half],
   });
 }
 
@@ -200,79 +225,103 @@ function LocateButton({ userLocation, onLocate }: { userLocation: UserLocation |
 }
 
 // Individual markers (non-clustered)
-function ReportMarkers({ reports, onReportClick }: {
+function ReportMarkers({ reports, areaStatusMap, onReportClick }: {
   reports: MapReport[];
+  areaStatusMap: Map<string, AreaStatusLevel>;
   onReportClick?: (report: MapReport) => void;
 }) {
   return (
     <>
-      {reports.map((report) => (
-        <Marker
-          key={report.id}
-          position={[report.lat, report.lng]}
-          icon={createSeverityIcon(report.severity)}
-          eventHandlers={{
-            click: () => onReportClick?.(report),
-          }}
-        >
-          <Popup>
-            <div style={{
-              minWidth: '200px', padding: '0.25rem',
-              fontFamily: 'Inter, sans-serif',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                <Droplets size={14} color={SEVERITY_COLORS[report.severity]} />
-                <span style={{
-                  fontSize: '0.75rem', fontWeight: 600,
-                  color: SEVERITY_COLORS[report.severity],
-                }}>
-                  {SEVERITY_LABELS[report.severity]}
-                </span>
-              </div>
-              {report.water_height_cm && (
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.375rem' }}>
-                  Ketinggian air: <strong style={{ color: 'var(--text-primary)' }}>{report.water_height_cm} cm</strong>
-                </p>
-              )}
-              {report.description && (
-                <p style={{
-                  fontSize: '0.75rem', color: 'var(--text-secondary)',
-                  marginBottom: '0.375rem', lineHeight: 1.4,
-                  display: '-webkit-box', WebkitLineClamp: 2,
-                  WebkitBoxOrient: 'vertical', overflow: 'hidden',
-                }}>
-                  {report.description}
-                </p>
-              )}
-              <p style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-                {new Date(report.created_at).toLocaleString('id-ID', {
-                  day: 'numeric', month: 'short', year: 'numeric',
-                  hour: '2-digit', minute: '2-digit',
-                })}
-              </p>
-              
-              <div style={{ paddingTop: '0.5rem', borderTop: '1px solid var(--border-primary)' }}>
-                <VoteButtons reportId={report.id} compact />
-              </div>
-              
-              <div style={{ marginTop: '0.5rem' }}>
-                <Link
-                  href={`/report/${report.id}`}
-                  style={{
-                    display: 'block', textAlign: 'center', padding: '6px 0',
-                    background: 'var(--primary-500)', color: 'white',
-                    borderRadius: 'var(--radius-sm)', textDecoration: 'none',
+      {reports.map((report) => {
+        const areaStatus = report.region_id ? areaStatusMap.get(report.region_id) : undefined;
+        const showAreaBadge = areaStatus && areaStatus !== 'normal';
+
+        return (
+          <Marker
+            key={report.id}
+            position={[report.lat, report.lng]}
+            icon={createSeverityIcon(report.severity, areaStatus)}
+            eventHandlers={{ click: () => onReportClick?.(report) }}
+          >
+            <Popup>
+              <div style={{
+                minWidth: '200px', padding: '0.25rem',
+                fontFamily: 'Inter, sans-serif',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <Droplets size={14} color={SEVERITY_COLORS[report.severity]} />
+                  <span style={{
                     fontSize: '0.75rem', fontWeight: 600,
-                    width: '100%'
-                  }}
-                >
-                  Buka Detail / Validasi
-                </Link>
+                    color: SEVERITY_COLORS[report.severity],
+                  }}>
+                    {SEVERITY_LABELS[report.severity]}
+                  </span>
+                </div>
+
+                {showAreaBadge && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '0.375rem',
+                    marginBottom: '0.5rem', padding: '4px 8px', borderRadius: '6px',
+                    background: `${AREA_STATUS_COLORS[areaStatus]}22`,
+                    border: `1px solid ${AREA_STATUS_COLORS[areaStatus]}55`,
+                  }}>
+                    <div style={{
+                      width: '6px', height: '6px', borderRadius: '50%',
+                      background: AREA_STATUS_COLORS[areaStatus], flexShrink: 0,
+                    }} />
+                    <span style={{
+                      fontSize: '0.6875rem', fontWeight: 600,
+                      color: AREA_STATUS_COLORS[areaStatus],
+                    }}>
+                      Status Area: {AREA_STATUS_LABELS[areaStatus]}
+                    </span>
+                  </div>
+                )}
+
+                {report.water_height_cm && (
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.375rem' }}>
+                    Ketinggian air: <strong style={{ color: 'var(--text-primary)' }}>{report.water_height_cm} cm</strong>
+                  </p>
+                )}
+                {report.description && (
+                  <p style={{
+                    fontSize: '0.75rem', color: 'var(--text-secondary)',
+                    marginBottom: '0.375rem', lineHeight: 1.4,
+                    display: '-webkit-box', WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                  }}>
+                    {report.description}
+                  </p>
+                )}
+                <p style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                  {new Date(report.created_at).toLocaleString('id-ID', {
+                    day: 'numeric', month: 'short', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit',
+                  })}
+                </p>
+
+                <div style={{ paddingTop: '0.5rem', borderTop: '1px solid var(--border-primary)' }}>
+                  <VoteButtons reportId={report.id} compact />
+                </div>
+
+                <div style={{ marginTop: '0.5rem' }}>
+                  <Link
+                    href={`/report/${report.id}`}
+                    style={{
+                      display: 'block', textAlign: 'center', padding: '6px 0',
+                      background: 'var(--primary-500)', color: 'white',
+                      borderRadius: 'var(--radius-sm)', textDecoration: 'none',
+                      fontSize: '0.75rem', fontWeight: 600, width: '100%',
+                    }}
+                  >
+                    Buka Detail / Validasi
+                  </Link>
+                </div>
               </div>
-            </div>
-          </Popup>
-        </Marker>
-      ))}
+            </Popup>
+          </Marker>
+        );
+      })}
     </>
   );
 }
@@ -312,6 +361,7 @@ export default function FloodMap() {
 
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [showLegend, setShowLegend] = useState(false);
+  const areaStatusMap = useAreaStatus();
 
   // Auto-watch position on mount (silent — only shows if user already granted permission)
   useEffect(() => {
@@ -365,6 +415,7 @@ export default function FloodMap() {
         <ClusterLayer
           reports={reports}
           visible={layerPreferences.showClusters}
+          areaStatusMap={areaStatusMap}
           onReportClick={(report) => setSelectedReport(report)}
         />
 
@@ -372,6 +423,7 @@ export default function FloodMap() {
         {layerPreferences.showMarkers && !layerPreferences.showClusters && (
           <ReportMarkers
             reports={reports}
+            areaStatusMap={areaStatusMap}
             onReportClick={(report) => setSelectedReport(report)}
           />
         )}
