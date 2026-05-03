@@ -171,7 +171,7 @@ export default function ReportDetailPage() {
   const { lat, lng } = parseLocation(report.location);
 
   return (
-    <div style={{ height: '100%', overflowY: 'auto', background: 'var(--bg-primary)' }}>
+    <div style={{ height: '100dvh', overflowY: 'auto', background: 'var(--bg-primary)' }}>
       {/* Header */}
       <div className="glass" style={{
         position: 'sticky', top: 0, zIndex: 100, padding: '0.75rem 1rem',
