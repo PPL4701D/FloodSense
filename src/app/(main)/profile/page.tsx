@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   User, Mail, Shield, Star, MapPin, LogIn,
-  FileText, Settings, ChevronRight, Loader2,
+  FileText, Settings, Bell, ChevronRight, Loader2,
 } from 'lucide-react';
 
 export default function ProfilePage() {
@@ -53,6 +53,7 @@ export default function ProfilePage() {
 
   const menuItems = [
     { href: '/my-reports', icon: FileText, label: 'Laporan Saya' },
+    { href: '/settings/notifications', icon: Bell, label: 'Notifikasi' },
     { href: '/settings', icon: Settings, label: 'Pengaturan' },
   ];
 
