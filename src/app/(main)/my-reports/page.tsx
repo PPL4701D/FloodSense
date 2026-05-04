@@ -229,6 +229,18 @@ export default function MyReportsPage() {
                   marginTop: '0.75rem', paddingTop: '0.75rem',
                   borderTop: '1px solid var(--border-primary)',
                 }}>
+                  <Link
+                    href={`/report/${report.id}/edit`}
+                    style={{
+                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      gap: '0.375rem', padding: '8px', borderRadius: 'var(--radius-sm)',
+                      border: '1px solid rgba(59,130,246,0.3)', background: 'rgba(59,130,246,0.08)',
+                      color: '#3b82f6', fontSize: '0.75rem', fontWeight: 500, cursor: 'pointer', textDecoration: 'none'
+                    }}
+                  >
+                    <Edit3 size={14} />
+                    Edit
+                  </Link>
                   <button
                     onClick={() => handleDelete(report.id)}
                     disabled={deleteId === report.id}
