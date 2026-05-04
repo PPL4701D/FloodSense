@@ -10,6 +10,7 @@ import {
   FileCheck2, FileX2, Radio, Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 const NOTIF_ICONS: Record<string, typeof Bell> = {
   status_change: MapPin,
@@ -24,6 +25,7 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
+  const router = useRouter();
 
   const fetchNotifications = useCallback(async () => {
     if (!user) return;
@@ -125,11 +127,16 @@ export default function NotificationsPage() {
               return (
                 <div
                   key={notif.id}
-                  onClick={() => !notif.is_read && markAsRead(notif.id)}
+                  onClick={() => {
+                    if (!notif.is_read) markAsRead(notif.id);
+                    if (notif.related_report_id) {
+                      router.push(`/report/${notif.related_report_id}`);
+                    }
+                  }}
                   className="card"
                   style={{
                     display: 'flex', gap: '0.75rem', padding: '0.875rem 1rem',
-                    cursor: notif.is_read ? 'default' : 'pointer',
+                    cursor: notif.related_report_id || !notif.is_read ? 'pointer' : 'default',
                     opacity: notif.is_read ? 0.7 : 1,
                     borderColor: notif.is_read ? 'var(--border-primary)' : 'var(--primary-500)',
                   }}

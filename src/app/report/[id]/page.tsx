@@ -49,6 +49,7 @@ type ReportDetail = {
   is_surge_receding: boolean;
   created_at: string;
   report_photos: { storage_path: string }[];
+  verificationNote?: string | null;
 };
 
 import VerificationPanel from '@/components/reports/VerificationPanel';
@@ -81,7 +82,21 @@ export default function ReportDetailPage() {
 
         if (fetchErr) throw fetchErr;
 
-        setReport(data as unknown as ReportDetail);
+        let verificationNote = null;
+        try {
+          const verifRes = await fetch(`/api/reports/${id}/verification-note`);
+          if (verifRes.ok) {
+            const verifData = await verifRes.json();
+            verificationNote = verifData.notes;
+          }
+        } catch (e) {
+          console.error('Failed to fetch verification note:', e);
+        }
+
+        setReport({
+          ...(data as unknown as ReportDetail),
+          verificationNote: verificationNote || null
+        });
 
         // Fetch photo urls
         if (data.report_photos && data.report_photos.length > 0) {
@@ -221,6 +236,24 @@ export default function ReportDetailPage() {
               })}</span>
             </div>
           </div>
+          
+          {(report.status === 'rejected' || report.status === 'verified') && report.verificationNote && (
+            <div style={{ 
+              marginTop: '1rem', padding: '0.75rem', 
+              background: report.status === 'rejected' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)', 
+              borderRadius: 'var(--radius-md)', 
+              border: `1px solid ${report.status === 'rejected' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(34, 197, 94, 0.2)'}` 
+            }}>
+              <p style={{ 
+                fontSize: '0.75rem', 
+                color: report.status === 'rejected' ? '#ef4444' : '#22c55e', 
+                fontWeight: 600, marginBottom: '0.25rem' 
+              }}>
+                {report.status === 'rejected' ? 'Alasan Penolakan:' : 'Catatan Verifikator:'}
+              </p>
+              <p style={{ fontSize: '0.8125rem', color: 'var(--text-primary)' }}>{report.verificationNote}</p>
+            </div>
+          )}
           
           <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(51,65,85,0.5)' }}>
             <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Bantu validasi laporan ini:</p>
