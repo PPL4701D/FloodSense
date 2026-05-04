@@ -226,13 +226,13 @@ export default function AdminUsersPage() {
       {editingUser && (
         <>
           <div onClick={() => setEditingUser(null)} style={{
-            position: 'fixed', inset: 0, zIndex: 1000,
+            position: 'fixed', inset: 0, zIndex: 9998,
             background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
           }} />
           <div className="animate-slide-up" style={{
-            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1001,
+            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 9999,
             background: 'var(--bg-card)', borderRadius: 'var(--radius-xl) var(--radius-xl) 0 0',
-            padding: '1.5rem',
+            padding: '1.5rem 1.5rem calc(1.5rem + 72px)',
           }}>
             <div style={{ width: '40px', height: '4px', borderRadius: '2px', background: 'var(--border-primary)', margin: '0 auto 1rem' }} />
             <h3 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>
