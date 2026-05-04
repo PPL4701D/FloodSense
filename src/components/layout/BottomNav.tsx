@@ -1,11 +1,13 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Map, FileText, PlusCircle, Bell, User, LayoutDashboard, ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { createClient } from '@/lib/supabase/client';
 
 type NavItem =
   | { isAction: true }
@@ -13,7 +15,45 @@ type NavItem =
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const { isAuthenticated, profile } = useAuth();
+  const { isAuthenticated, profile, user } = useAuth();
+  const [hasUnread, setHasUnread] = useState(false);
+  const supabase = createClient();
+
+  useEffect(() => {
+    if (!user) return;
+
+    const checkUnread = async () => {
+      const { count } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('is_read', false);
+      
+      setHasUnread(!!(count && count > 0));
+    };
+
+    checkUnread();
+
+    const channel = supabase
+      .channel('notifications-bell')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          checkUnread();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, supabase]);
 
   const role = profile?.role;
   const isStaff = role && ['staf', 'tlm', 'admin'].includes(role);
@@ -106,6 +146,9 @@ export default function BottomNav() {
             <Link
               key={idx}
               href={href}
+              onClick={() => {
+                if (href === '/notifications') setHasUnread(false);
+              }}
               style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center',
                 justifyContent: 'center', gap: '4px', textDecoration: 'none',
@@ -115,11 +158,25 @@ export default function BottomNav() {
                 flexShrink: 0,
               }}
             >
-              <Icon
-                size={22}
-                strokeWidth={isActive ? 2.5 : 2}
-                color={isActive ? 'var(--primary-400)' : 'var(--text-secondary)'}
-              />
+              <div style={{ position: 'relative', display: 'flex' }}>
+                <Icon
+                  size={22}
+                  strokeWidth={isActive ? 2.5 : 2}
+                  color={isActive ? 'var(--primary-400)' : 'var(--text-secondary)'}
+                />
+                {href === '/notifications' && hasUnread && (
+                  <span style={{
+                    position: 'absolute',
+                    top: '-2px',
+                    right: '-2px',
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: '#ef4444',
+                    border: '1.5px solid var(--bg-primary)',
+                  }} />
+                )}
+              </div>
               <span style={{
                 fontSize: '0.625rem',
                 fontWeight: isActive ? 700 : 500,

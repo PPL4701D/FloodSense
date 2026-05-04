@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
     // Update reporter reputation (FR-020)
     const { data: report } = await supabase
       .from('reports')
-      .select('reporter_id')
+      .select('reporter_id, address')
       .eq('id', report_id)
       .single();
 
@@ -109,13 +109,14 @@ export async function POST(req: NextRequest) {
 
     // FR-022: Notify reporter of status change
     if (report && (decision === 'verified' || decision === 'rejected')) {
+      const addressText = report.address ? ` di ${report.address}` : '';
       const notifType = decision === 'verified' ? 'report_verified' : 'report_rejected';
       const notifTitle = decision === 'verified'
         ? 'Laporan Anda Terverifikasi'
         : 'Laporan Anda Ditolak';
       const notifBody = decision === 'verified'
-        ? 'Laporan banjir Anda telah diverifikasi oleh petugas.'
-        : `Laporan banjir Anda ditolak. Alasan: ${notes || 'Tidak sesuai kondisi lapangan.'}`;
+        ? `Laporan banjir Anda${addressText} telah diverifikasi oleh petugas.`
+        : `Laporan banjir Anda${addressText} ditolak. Alasan: ${notes || 'Tidak sesuai kondisi lapangan.'}`;
 
       await supabase.from('notifications').insert({
         user_id: report.reporter_id,
