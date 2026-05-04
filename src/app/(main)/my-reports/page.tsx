@@ -113,7 +113,16 @@ export default function MyReportsPage() {
   }
 
   return (
-    <div style={{ padding: '1rem', maxWidth: '640px', margin: '0 auto' }}>
+    <div style={{
+      height: '100%',
+      overflowY: 'auto',
+      overflowX: 'hidden',
+      padding: '1rem 1rem 88px', /* 88px = bottom nav clearance */
+      maxWidth: '640px',
+      margin: '0 auto',
+      width: '100%',
+      boxSizing: 'border-box'
+    }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
         <button

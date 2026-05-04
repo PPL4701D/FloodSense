@@ -44,7 +44,7 @@ export default function ReportEditPage() {
   const params = useParams();
   const id = params.id as string;
   const { isAuthenticated, loading: authLoading, user } = useAuth();
-  
+
   const {
     edit: editReport,
     isSubmitting,
@@ -92,7 +92,7 @@ export default function ReportEditPage() {
 
   useEffect(() => {
     if (!id || !user) return;
-    
+
     const fetchReport = async () => {
       setLoadingData(true);
       try {
@@ -104,7 +104,7 @@ export default function ReportEditPage() {
           .single();
 
         if (error) throw error;
-        
+
         if (data.status !== 'pending') {
           alert('Hanya laporan berstatus Menunggu yang dapat diedit.');
           router.push('/my-reports');
@@ -128,9 +128,9 @@ export default function ReportEditPage() {
               return new DataView(buf).getFloat64(0, true);
             };
             try {
-               lng = readDouble(data.location, offset * 2);
-               lat = readDouble(data.location, offset * 2 + 16);
-            } catch(e) {}
+              lng = readDouble(data.location, offset * 2);
+              lat = readDouble(data.location, offset * 2 + 16);
+            } catch (e) { }
           }
         }
 
@@ -356,7 +356,7 @@ export default function ReportEditPage() {
                       <label htmlFor="address" style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem', color: 'var(--text-secondary)' }}>Alamat (opsional)</label>
                       <input id="address" type="text" className="input" placeholder="Jl. Contoh No. 123, Kelurahan..." {...register('address')} />
                     </div>
-                    
+
                     <button type="button" onClick={getLocation} className="btn btn-secondary" style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
                       <Navigation size={16} /> Update Lokasi Saya Saat Ini
                     </button>
@@ -451,8 +451,8 @@ export default function ReportEditPage() {
                 )}
 
                 <div>
-                   <p style={{ fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Foto baru:</p>
-                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+                  <p style={{ fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Foto baru:</p>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
                     {photoPreviewUrls.map((url, i) => (
                       <div key={i} style={{ position: 'relative', aspectRatio: '1', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-primary)' }}>
                         <img src={url} alt={`Foto baru ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
