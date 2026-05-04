@@ -161,13 +161,19 @@ export default function StaffVerificationPage() {
   }
 
   return (
-    <div className="page-scroll" style={{ paddingBottom: '100px' }}>
+    <div style={{
+      height: '100%',
+      overflow: 'hidden',
+      display: 'flex',
+      flexDirection: 'column',
+    }}>
 
-      {/* ── Sticky Header ─────────────────────────────── */}
+      {/* ── Fixed Header ─────────────────────────────── */}
       <div style={{
-        position: 'sticky', top: '56px', zIndex: 100,
+        zIndex: 100,
         background: 'rgba(10,15,30,0.85)', backdropFilter: 'blur(16px)',
         borderBottom: '1px solid rgba(255,255,255,0.07)',
+        flexShrink: 0,
       }}>
         {/* Title row */}
         <div style={{ padding: '0.875rem 1rem 0', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -291,33 +297,42 @@ export default function StaffVerificationPage() {
       </div>
 
       {/* ── Content ────────────────────────────────────── */}
-      <div style={{ padding: '1rem', maxWidth: '720px', margin: '0 auto' }}>
-        {loading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem 0' }}>
-            <WaveLoader size={48} />
-          </div>
-        ) : filteredReports.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '4rem 1rem' }}>
-            <Shield size={56} color="var(--text-muted)" strokeWidth={1} style={{ margin: '0 auto 1rem', opacity: 0.3 }} />
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', fontWeight: 500 }}>
-              {searchQuery ? `Hasil tidak ditemukan untuk "${searchQuery}"` : 'Tidak ada laporan yang perlu diverifikasi'}
-            </p>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.375rem' }}>
-              Semua laporan sudah ditangani 🎉
-            </p>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-            {filteredReports.map((report) => (
-              <ReportCard
-                key={report.id}
-                report={report}
-                isSelected={selectedId === report.id}
-                onClick={() => setSelectedId(selectedId === report.id ? null : report.id)}
-              />
-            ))}
-          </div>
-        )}
+      <div style={{
+        flex: 1,
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        padding: '1rem',
+        paddingBottom: '100px',
+        width: '100%',
+      }}>
+        <div style={{ maxWidth: '720px', margin: '0 auto' }}>
+          {loading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem 0' }}>
+              <WaveLoader size={48} />
+            </div>
+          ) : filteredReports.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '4rem 1rem' }}>
+              <Shield size={56} color="var(--text-muted)" strokeWidth={1} style={{ margin: '0 auto 1rem', opacity: 0.3 }} />
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', fontWeight: 500 }}>
+                {searchQuery ? `Hasil tidak ditemukan untuk "${searchQuery}"` : 'Tidak ada laporan yang perlu diverifikasi'}
+              </p>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.375rem' }}>
+                Semua laporan sudah ditangani 🎉
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+              {filteredReports.map((report) => (
+                <ReportCard
+                  key={report.id}
+                  report={report}
+                  isSelected={selectedId === report.id}
+                  onClick={() => setSelectedId(selectedId === report.id ? null : report.id)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ── Detail Panel ───────────────────────────────── */}
