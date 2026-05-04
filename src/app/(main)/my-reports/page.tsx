@@ -22,6 +22,7 @@ interface MyReport {
   created_at: string;
   address: string | null;
   credibility_score: number;
+  rejection_note?: string;
 }
 
 const STATUS_LABELS: Record<ReportStatus, string> = {
@@ -77,7 +78,37 @@ export default function MyReportsPage() {
       console.error('Error fetching my reports:', error);
       return;
     }
-    setReports(data || []);
+
+    const reportsData = data || [];
+    
+    // Akali masalah RLS (Row Level Security) di tabel verifications dengan mengambil note dari notifikasi
+    const rejectedIds = reportsData.filter(r => r.status === 'rejected').map(r => r.id);
+    let notifsMap: Record<string, string> = {};
+    if (rejectedIds.length > 0) {
+      const { data: notifs } = await supabase
+        .from('notifications')
+        .select('related_report_id, body')
+        .eq('user_id', user.id)
+        .eq('type', 'report_rejected')
+        .in('related_report_id', rejectedIds);
+        
+      if (notifs) {
+        notifs.forEach(n => {
+          if (n.related_report_id) {
+            // Ekstrak teks setelah "Alasan: " dari notifikasi
+            const match = n.body.match(/Alasan:\s*(.+)$/);
+            notifsMap[n.related_report_id] = match ? match[1] : n.body;
+          }
+        });
+      }
+    }
+
+    const finalReports = reportsData.map(r => ({
+      ...r,
+      rejection_note: notifsMap[r.id]
+    }));
+
+    setReports(finalReports);
     setLoading(false);
   }, [supabase, user]);
 
@@ -277,13 +308,18 @@ export default function MyReportsPage() {
                   borderTop: '1px solid var(--border-primary)',
                 }}>
                   <div style={{
-                    display: 'flex', alignItems: 'center', gap: '0.375rem',
-                    padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-sm)',
+                    display: 'flex', alignItems: 'flex-start', gap: '0.5rem',
+                    padding: '0.625rem 0.75rem', borderRadius: 'var(--radius-sm)',
                     background: 'rgba(239,68,68,0.08)',
                     fontSize: '0.75rem', color: '#ef4444',
                   }}>
-                    <AlertCircle size={12} />
-                    Laporan ditolak oleh verifikator
+                    <AlertCircle size={14} style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <div style={{ lineHeight: 1.4 }}>
+                      <strong style={{ display: 'block', marginBottom: '2px' }}>Laporan ditolak verifikator</strong>
+                      <span style={{ opacity: 0.9 }}>
+                        {report.rejection_note || 'Tidak memenuhi kriteria validasi.'}
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}
