@@ -1,0 +1,40 @@
+-- Seed 34 Provinsi Indonesia ke tabel regions
+-- Jalankan di Supabase SQL Editor (Settings → SQL Editor)
+-- Aman dijalankan berulang kali (ON CONFLICT DO NOTHING)
+
+INSERT INTO public.regions (id, name, level, parent_id, code) VALUES
+  (gen_random_uuid(), 'Aceh',                        'provinsi', NULL, 'ID-AC'),
+  (gen_random_uuid(), 'Sumatera Utara',               'provinsi', NULL, 'ID-SU'),
+  (gen_random_uuid(), 'Sumatera Barat',               'provinsi', NULL, 'ID-SB'),
+  (gen_random_uuid(), 'Riau',                         'provinsi', NULL, 'ID-RI'),
+  (gen_random_uuid(), 'Jambi',                        'provinsi', NULL, 'ID-JA'),
+  (gen_random_uuid(), 'Sumatera Selatan',             'provinsi', NULL, 'ID-SS'),
+  (gen_random_uuid(), 'Bengkulu',                     'provinsi', NULL, 'ID-BE'),
+  (gen_random_uuid(), 'Lampung',                      'provinsi', NULL, 'ID-LA'),
+  (gen_random_uuid(), 'Kepulauan Bangka Belitung',    'provinsi', NULL, 'ID-BB'),
+  (gen_random_uuid(), 'Kepulauan Riau',               'provinsi', NULL, 'ID-KR'),
+  (gen_random_uuid(), 'DKI Jakarta',                  'provinsi', NULL, 'ID-JK'),
+  (gen_random_uuid(), 'Jawa Barat',                   'provinsi', NULL, 'ID-JB'),
+  (gen_random_uuid(), 'Jawa Tengah',                  'provinsi', NULL, 'ID-JT'),
+  (gen_random_uuid(), 'DI Yogyakarta',                'provinsi', NULL, 'ID-YO'),
+  (gen_random_uuid(), 'Jawa Timur',                   'provinsi', NULL, 'ID-JI'),
+  (gen_random_uuid(), 'Banten',                       'provinsi', NULL, 'ID-BT'),
+  (gen_random_uuid(), 'Bali',                         'provinsi', NULL, 'ID-BA'),
+  (gen_random_uuid(), 'Nusa Tenggara Barat',          'provinsi', NULL, 'ID-NB'),
+  (gen_random_uuid(), 'Nusa Tenggara Timur',          'provinsi', NULL, 'ID-NT'),
+  (gen_random_uuid(), 'Kalimantan Barat',             'provinsi', NULL, 'ID-KB'),
+  (gen_random_uuid(), 'Kalimantan Tengah',            'provinsi', NULL, 'ID-KT'),
+  (gen_random_uuid(), 'Kalimantan Selatan',           'provinsi', NULL, 'ID-KS'),
+  (gen_random_uuid(), 'Kalimantan Timur',             'provinsi', NULL, 'ID-KI'),
+  (gen_random_uuid(), 'Kalimantan Utara',             'provinsi', NULL, 'ID-KU'),
+  (gen_random_uuid(), 'Sulawesi Utara',               'provinsi', NULL, 'ID-SA'),
+  (gen_random_uuid(), 'Sulawesi Tengah',              'provinsi', NULL, 'ID-ST'),
+  (gen_random_uuid(), 'Sulawesi Selatan',             'provinsi', NULL, 'ID-SN'),
+  (gen_random_uuid(), 'Sulawesi Tenggara',            'provinsi', NULL, 'ID-SG'),
+  (gen_random_uuid(), 'Gorontalo',                    'provinsi', NULL, 'ID-GO'),
+  (gen_random_uuid(), 'Sulawesi Barat',               'provinsi', NULL, 'ID-SR'),
+  (gen_random_uuid(), 'Maluku',                       'provinsi', NULL, 'ID-MA'),
+  (gen_random_uuid(), 'Maluku Utara',                 'provinsi', NULL, 'ID-MU'),
+  (gen_random_uuid(), 'Papua Barat',                  'provinsi', NULL, 'ID-PB'),
+  (gen_random_uuid(), 'Papua',                        'provinsi', NULL, 'ID-PA')
+ON CONFLICT (code) DO NOTHING;
