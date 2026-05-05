@@ -54,7 +54,7 @@ export default function NotificationPrefsPage() {
     const { data: allRegions } = await supabase
       .from('regions')
       .select('id, name')
-      .in('level', ['province', 'city'])
+      .in('level', ['provinsi', 'kabupaten'])
       .order('name')
       .limit(200);
     setRegions(allRegions || []);
@@ -68,6 +68,7 @@ export default function NotificationPrefsPage() {
 
   const handleAdd = async () => {
     if (!selectedRegion || !user) return;
+    if (prefs.length >= 5) return;
     setAdding(true);
 
     await supabase.from('user_region_preferences').insert({
@@ -147,11 +148,11 @@ export default function NotificationPrefsPage() {
                 </select>
                 <button
                   onClick={handleAdd}
-                  disabled={!selectedRegion || adding}
+                  disabled={!selectedRegion || adding || prefs.length >= 5}
                   className="btn btn-primary"
                   style={{
                     padding: '8px 16px',
-                    opacity: !selectedRegion || adding ? 0.5 : 1,
+                    opacity: !selectedRegion || adding || prefs.length >= 5 ? 0.5 : 1,
                     display: 'flex', alignItems: 'center', gap: '4px',
                   }}
                 >
@@ -163,12 +164,17 @@ export default function NotificationPrefsPage() {
                   Data wilayah belum tersedia. Hubungi admin.
                 </p>
               )}
+              {prefs.length >= 5 && (
+                <p style={{ fontSize: '0.6875rem', color: '#f59e0b', marginTop: '0.5rem' }}>
+                  Maksimal 5 wilayah tercapai. Hapus salah satu untuk menambah yang baru.
+                </p>
+              )}
             </div>
 
             {/* Current Preferences */}
             <div>
               <p style={{ fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.5rem' }}>
-                Wilayah Pilihan ({prefs.length})
+                Wilayah Pilihan ({prefs.length}/5)
               </p>
               {prefs.length === 0 ? (
                 <div className="card" style={{ padding: '1.5rem', textAlign: 'center' }}>
