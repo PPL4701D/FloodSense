@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -119,6 +120,64 @@ export async function POST(req: NextRequest) {
     // Recalculate credibility score for new report
     const baseUrl = req.nextUrl.origin;
     fetch(`${baseUrl}/api/reports/${report.id}/credibility`, { method: 'POST' }).catch(() => {});
+
+    // FR-037: Notify users whose monitoring points are within radius of the new report
+    try {
+      const adminSupabase = createAdminClient();
+      const { data: allPrefs } = await adminSupabase
+        .from('user_region_preferences')
+        .select('user_id, label, lat, lng, radius_km')
+        .not('lat', 'is', null)
+        .not('lng', 'is', null);
+
+      if (allPrefs && allPrefs.length > 0) {
+        const toRad = (d: number) => (d * Math.PI) / 180;
+        const reportLat = Number(lat);
+        const reportLng = Number(lng);
+        const seen = new Set<string>();
+        const notifications: {
+          user_id: string;
+          type: string;
+          title: string;
+          body: string;
+          related_report_id: string;
+        }[] = [];
+
+        for (const p of allPrefs) {
+          if (!p.lat || !p.lng) continue;
+          if (p.user_id === user.id) continue;
+          if (seen.has(p.user_id)) continue;
+
+          const R = 6371;
+          const dLat = toRad(p.lat - reportLat);
+          const dLng = toRad(p.lng - reportLng);
+          const a =
+            Math.sin(dLat / 2) ** 2 +
+            Math.cos(toRad(reportLat)) * Math.cos(toRad(p.lat)) * Math.sin(dLng / 2) ** 2;
+          const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+          const radiusKm = p.radius_km || 5;
+
+          if (dist <= radiusKm) {
+            seen.add(p.user_id);
+            const label = p.label || 'titik pantauan Anda';
+            const addressText = address || `${reportLat.toFixed(4)}, ${reportLng.toFixed(4)}`;
+            notifications.push({
+              user_id: p.user_id,
+              type: 'area_status_update',
+              title: `Peringatan Banjir di Sekitar ${label}`,
+              body: `Laporan banjir baru di ${addressText}, dalam radius ${radiusKm} km dari "${label}".`,
+              related_report_id: report.id,
+            });
+          }
+        }
+
+        if (notifications.length > 0) {
+          await adminSupabase.from('notifications').insert(notifications);
+        }
+      }
+    } catch (e: unknown) {
+      console.error('Proximity notification error:', e instanceof Error ? e.message : String(e));
+    }
 
     return NextResponse.json({
       success: true,
