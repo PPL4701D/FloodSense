@@ -82,7 +82,7 @@ export default function MyReportsPage() {
     const reportsData = data || [];
     
     // Akali masalah RLS (Row Level Security) di tabel verifications dengan mengambil note dari notifikasi
-    const rejectedIds = reportsData.filter(r => r.status === 'rejected').map(r => r.id);
+    const rejectedIds = reportsData.filter((r: any) => r.status === 'rejected').map((r: any) => r.id);
     let notifsMap: Record<string, string> = {};
     if (rejectedIds.length > 0) {
       const { data: notifs } = await supabase
@@ -93,7 +93,7 @@ export default function MyReportsPage() {
         .in('related_report_id', rejectedIds);
         
       if (notifs) {
-        notifs.forEach(n => {
+        notifs.forEach((n: any) => {
           if (n.related_report_id) {
             // Ekstrak teks setelah "Alasan: " dari notifikasi
             const match = n.body.match(/Alasan:\s*(.+)$/);
@@ -103,7 +103,7 @@ export default function MyReportsPage() {
       }
     }
 
-    const finalReports = reportsData.map(r => ({
+    const finalReports = reportsData.map((r: any) => ({
       ...r,
       rejection_note: notifsMap[r.id]
     }));

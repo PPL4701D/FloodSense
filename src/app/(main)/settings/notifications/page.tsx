@@ -71,8 +71,8 @@ export default function NotificationPrefsPage() {
     if (data) {
       setPrefs(
         data
-          .filter((d) => d.lat != null && d.lng != null)
-          .map((d) => ({
+          .filter((d: any) => d.lat != null && d.lng != null)
+          .map((d: any) => ({
             id: d.id as string,
             label: d.label as string | null,
             lat: d.lat as number,
