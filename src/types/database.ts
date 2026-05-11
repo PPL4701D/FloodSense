@@ -183,7 +183,11 @@ export interface AuditLog {
 export interface UserRegionPreference {
   id: string;
   user_id: string;
-  region_id: string;
+  region_id: string | null;
+  label: string | null;
+  lat: number | null;
+  lng: number | null;
+  radius_km: number | null;
   created_at: string;
 }
 

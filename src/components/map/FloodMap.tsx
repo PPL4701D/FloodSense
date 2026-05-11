@@ -15,6 +15,7 @@ import { SEVERITY_LABELS, AREA_STATUS_COLORS, AREA_STATUS_LABELS } from '@/types
 import { Navigation, AlertTriangle, Droplets, Loader2, Info } from 'lucide-react';
 import VoteButtons from '@/components/reports/VoteButtons';
 import Link from 'next/link';
+import LocationSearch from './LocationSearch';
 
 // Fix Leaflet default marker icon issue
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -349,6 +350,50 @@ function AutoFitBounds({ reports }: { reports: MapReport[] }) {
   return null;
 }
 
+// Custom icon for search results
+function createSearchMarkerIcon() {
+  return L.divIcon({
+    html: `
+      <div style="
+        position: relative;
+        width: 28px; height: 28px;
+        display: flex; align-items: center; justify-content: center;
+      ">
+        <div style="
+          position: absolute;
+          width: 40px; height: 40px;
+          border-radius: 50%;
+          background: rgba(139, 92, 246, 0.25);
+          animation: user-loc-pulse 2s ease-out infinite;
+        "></div>
+        <div style="
+          width: 18px; height: 18px;
+          background: #8b5cf6;
+          border: 3px solid white;
+          border-radius: 50%;
+          box-shadow: 0 2px 8px rgba(139, 92, 246, 0.6);
+          position: relative; z-index: 1;
+        "></div>
+      </div>
+    `,
+    className: '',
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+    popupAnchor: [0, -14],
+  });
+}
+
+// Focus on searched location
+function SearchFocus({ location }: { location: {lat: number, lng: number} | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (location) {
+      map.flyTo([location.lat, location.lng], 16, { animate: true, duration: 1.5 });
+    }
+  }, [location, map]);
+  return null;
+}
+
 export default function FloodMap() {
   const {
     reports,
@@ -360,6 +405,7 @@ export default function FloodMap() {
   } = useMapStore();
 
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+  const [searchedLocation, setSearchedLocation] = useState<{lat: number, lng: number} | null>(null);
   const [showLegend, setShowLegend] = useState(false);
   const areaStatusMap = useAreaStatus();
 
@@ -431,8 +477,36 @@ export default function FloodMap() {
         {/* User location blue dot */}
         <UserLocationDot location={userLocation} />
 
+        {/* Search Marker */}
+        {searchedLocation && (
+          <Marker 
+            position={[searchedLocation.lat, searchedLocation.lng]} 
+            icon={createSearchMarkerIcon()}
+            zIndexOffset={1000}
+          >
+            <Popup>
+              <div style={{ fontFamily: 'Inter, sans-serif', padding: '0.25rem', textAlign: 'center' }}>
+                <p style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--primary-500)', marginBottom: 0 }}>
+                  📍 Hasil Pencarian
+                </p>
+              </div>
+            </Popup>
+          </Marker>
+        )}
+
+        <SearchFocus location={searchedLocation} />
+
         <LocateButton userLocation={userLocation} onLocate={setUserLocation} />
       </MapContainer>
+
+      {/* Search Bar */}
+      <div style={{ 
+        position: 'absolute', top: '24px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000, 
+        width: 'calc(100% - 32px)', maxWidth: '420px',
+        boxShadow: 'var(--shadow-md)', borderRadius: 'var(--radius-md)'
+      }}>
+        <LocationSearch onSelect={(lat, lng) => setSearchedLocation({ lat, lng })} />
+      </div>
 
       {/* Layer Control */}
       <LayerControl

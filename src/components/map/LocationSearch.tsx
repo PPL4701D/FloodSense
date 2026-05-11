@@ -43,10 +43,17 @@ export default function LocationSearch({ onSelect }: LocationSearchProps) {
     const timer = setTimeout(async () => {
       setIsSearching(true);
       try {
-        // countrycodes=id limits results to Indonesia
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=id&limit=5`);
+        // Meminta lebih banyak hasil untuk disaring
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=30`);
         const data = await res.json();
-        setResults(data);
+
+        // Memfilter agar hanya menampilkan daerah, kota, provinsi, dan jalan (menghilangkan apotek, toko, dll)
+        const filteredData = data.filter((item: any) => {
+          const allowedClasses = ['place', 'boundary', 'highway', 'landuse'];
+          return allowedClasses.includes(item.class);
+        }).slice(0, 15); // Batasi maksimal 15 hasil setelah disaring
+
+        setResults(filteredData);
         setIsOpen(true);
       } catch (err) {
         console.error('Failed to search location', err);
@@ -68,20 +75,20 @@ export default function LocationSearch({ onSelect }: LocationSearchProps) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => {
-             if (results.length > 0) setIsOpen(true);
+            if (results.length > 0) setIsOpen(true);
           }}
           style={{ paddingLeft: '2.5rem' }}
         />
-        <div style={{ 
-          position: 'absolute', 
-          left: '12px', 
-          top: '50%', 
-          transform: 'translateY(-50%)', 
-          display: 'flex', 
-          alignItems: 'center', 
-          pointerEvents: 'none' 
+        <div style={{
+          position: 'absolute',
+          left: '12px',
+          top: '50%',
+          transform: 'translateY(-50%)',
+          display: 'flex',
+          alignItems: 'center',
+          pointerEvents: 'none'
         }}>
-           {isSearching ? <Loader2 size={18} className="animate-spin text-primary-400" color="var(--primary-400)" /> : <Search size={18} color="var(--text-muted)" />}
+          {isSearching ? <Loader2 size={18} className="animate-spin text-primary-400" color="var(--primary-400)" /> : <Search size={18} color="var(--text-muted)" />}
         </div>
       </div>
 
@@ -89,8 +96,8 @@ export default function LocationSearch({ onSelect }: LocationSearchProps) {
         <div style={{
           position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 1100,
           background: 'var(--bg-card)', border: '1px solid var(--border-primary)',
-          borderRadius: 'var(--radius-md)', marginTop: '4px', overflow: 'hidden',
-          boxShadow: 'var(--shadow-lg)'
+          borderRadius: 'var(--radius-md)', marginTop: '4px', overflowY: 'auto',
+          maxHeight: '300px', boxShadow: 'var(--shadow-lg)'
         }}>
           {results.map((item) => (
             <button
