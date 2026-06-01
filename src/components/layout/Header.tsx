@@ -3,6 +3,7 @@
 import { Droplets, LogIn, LogOut } from 'lucide-react';
 import { useAuth } from '@/lib/hooks/useAuth';
 import Link from 'next/link';
+import NotificationBell from './NotificationBell';
 
 export default function Header() {
   const { isAuthenticated, profile, signOut } = useAuth();
@@ -57,6 +58,8 @@ export default function Header() {
                 {profile.role.toUpperCase()}
               </span>
             )}
+            {/* FR-047: Notification bell (semua role login) */}
+            <NotificationBell />
             {/* Avatar */}
             <Link href="/profile" style={{ textDecoration: 'none' }}>
               <div style={{
