@@ -6,8 +6,9 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   User, Mail, Shield, Star, MapPin, LogIn,
-  FileText, Settings, Bell, ChevronRight, Loader2,
+  FileText, Settings, Bell, ChevronRight, Loader2, Trophy,
 } from 'lucide-react';
+import ReputationBadge from '@/components/reputation/ReputationBadge';
 
 export default function ProfilePage() {
   const { user, profile, loading, isAuthenticated, signOut } = useAuth();
@@ -53,6 +54,7 @@ export default function ProfilePage() {
 
   const menuItems = [
     { href: '/my-reports', icon: FileText, label: 'Laporan Saya' },
+    { href: '/leaderboard', icon: Trophy, label: 'Papan Peringkat' },
     { href: '/settings/notifications', icon: Bell, label: 'Notifikasi' },
     { href: '/settings', icon: Settings, label: 'Pengaturan' },
   ];
@@ -112,6 +114,11 @@ export default function ProfilePage() {
                 </div>
                 <p style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: '2px' }}>Reputasi</p>
               </div>
+            </div>
+
+            {/* FR-051: Lencana reputasi + progress */}
+            <div style={{ marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border-primary)', textAlign: 'left' }}>
+              <ReputationBadge score={profile?.reputation_score || 0} showProgress />
             </div>
           </div>
 
