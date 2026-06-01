@@ -13,7 +13,7 @@ import LayerControl from './LayerControl';
 import MapFilterControl from './MapFilterControl';
 import type { MapReport, SeverityLevel, AreaStatusLevel } from '@/types/database';
 import { SEVERITY_LABELS, AREA_STATUS_COLORS, AREA_STATUS_LABELS } from '@/types/database';
-import { Navigation, AlertTriangle, Droplets, Loader2, Info } from 'lucide-react';
+import { Navigation, AlertTriangle, Droplets, Loader2, Info, MapPin } from 'lucide-react';
 import VoteButtons from '@/components/reports/VoteButtons';
 import Link from 'next/link';
 import LocationSearch from './LocationSearch';
@@ -362,6 +362,7 @@ function createSearchMarkerIcon() {
       ">
         <div style="
           position: absolute;
+          top: 50%; left: 50%;
           width: 40px; height: 40px;
           border-radius: 50%;
           background: rgba(139, 92, 246, 0.25);
@@ -406,7 +407,7 @@ export default function FloodMap() {
   } = useMapStore();
 
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
-  const [searchedLocation, setSearchedLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [searchedLocation, setSearchedLocation] = useState<{lat: number, lng: number, label: string} | null>(null);
   const [showLegend, setShowLegend] = useState(false);
   const areaStatusMap = useAreaStatus();
 
@@ -486,11 +487,55 @@ export default function FloodMap() {
             zIndexOffset={1000}
           >
             <Popup>
-              <div style={{ fontFamily: 'Inter, sans-serif', padding: '0.25rem', textAlign: 'center' }}>
-                <p style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--primary-500)', marginBottom: 0 }}>
-                  📍 Hasil Pencarian
-                </p>
-              </div>
+              {(() => {
+                const parts = (searchedLocation.label || '').split(',').map(s => s.trim()).filter(Boolean);
+                const primary = parts[0] || 'Lokasi terpilih';
+                const secondary = parts.slice(1, 3).join(', ');
+                return (
+                  <div style={{ fontFamily: 'Inter, sans-serif', minWidth: '190px', maxWidth: '250px', padding: '0.15rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.4rem' }}>
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        width: '22px', height: '22px', borderRadius: '50%',
+                        background: 'rgba(139,92,246,0.18)', flexShrink: 0,
+                      }}>
+                        <MapPin size={13} color="#8b5cf6" />
+                      </span>
+                      <span style={{
+                        fontSize: '0.625rem', fontWeight: 700, color: '#8b5cf6',
+                        textTransform: 'uppercase', letterSpacing: '0.06em',
+                      }}>
+                        Hasil Pencarian
+                      </span>
+                    </div>
+
+                    <p style={{
+                      fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)',
+                      margin: 0, lineHeight: 1.3,
+                    }}>
+                      {primary}
+                    </p>
+                    {secondary && (
+                      <p style={{
+                        fontSize: '0.6875rem', color: 'var(--text-secondary)',
+                        margin: '2px 0 0', lineHeight: 1.35,
+                      }}>
+                        {secondary}
+                      </p>
+                    )}
+
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: '0.3rem',
+                      marginTop: '0.5rem', paddingTop: '0.45rem',
+                      borderTop: '1px solid var(--border-primary)',
+                      fontSize: '0.625rem', color: 'var(--text-muted)',
+                    }}>
+                      <Navigation size={10} color="var(--text-muted)" />
+                      {searchedLocation.lat.toFixed(5)}, {searchedLocation.lng.toFixed(5)}
+                    </div>
+                  </div>
+                );
+              })()}
             </Popup>
           </Marker>
         )}
@@ -506,7 +551,7 @@ export default function FloodMap() {
         width: 'calc(100% - 32px)', maxWidth: '420px',
         boxShadow: 'var(--shadow-md)', borderRadius: 'var(--radius-md)'
       }}>
-        <LocationSearch onSelect={(lat, lng) => setSearchedLocation({ lat, lng })} />
+        <LocationSearch onSelect={(lat, lng, label) => setSearchedLocation({ lat, lng, label })} />
       </div>
 
       {/* FR-045: Filter Control (keparahan / status / waktu) */}

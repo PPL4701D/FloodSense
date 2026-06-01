@@ -11,7 +11,7 @@ interface SearchResult {
 }
 
 interface LocationSearchProps {
-  onSelect: (lat: number, lng: number) => void;
+  onSelect: (lat: number, lng: number, label: string) => void;
 }
 
 export default function LocationSearch({ onSelect }: LocationSearchProps) {
@@ -104,7 +104,7 @@ export default function LocationSearch({ onSelect }: LocationSearchProps) {
               key={item.place_id}
               type="button"
               onClick={() => {
-                onSelect(parseFloat(item.lat), parseFloat(item.lon));
+                onSelect(parseFloat(item.lat), parseFloat(item.lon), item.display_name);
                 setQuery(item.display_name);
                 setIsOpen(false);
               }}
