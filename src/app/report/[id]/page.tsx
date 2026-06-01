@@ -40,6 +40,7 @@ const SEVERITY_COLORS: Record<SeverityLevel, string> = {
 
 type ReportDetail = {
   id: string;
+  reporter_id: string;
   location: string;
   address: string | null;
   description: string | null;
@@ -54,6 +55,7 @@ type ReportDetail = {
 
 import VerificationPanel from '@/components/reports/VerificationPanel';
 import StatusTimeline from '@/components/reports/StatusTimeline';
+import CommentSection from '@/components/reports/CommentSection';
 import { useAuth } from '@/lib/hooks/useAuth';
 
 export default function ReportDetailPage() {
@@ -265,6 +267,11 @@ export default function ReportDetailPage() {
         {/* FR-053: Status Timeline */}
         <div className="card" style={{ padding: '1.25rem' }}>
           <StatusTimeline reportId={report.id} />
+        </div>
+
+        {/* FR-048: Komentar & Diskusi */}
+        <div className="card" style={{ padding: '1.25rem' }}>
+          <CommentSection reportId={report.id} reporterId={report.reporter_id} />
         </div>
 
         {/* Photos (if any) */}
