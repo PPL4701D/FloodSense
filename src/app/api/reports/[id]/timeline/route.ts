@@ -27,7 +27,7 @@ export async function GET(
 
     const { data: report, error: reportErr } = await admin
       .from('reports')
-      .select('created_at, status')
+      .select('created_at, status, updated_at')
       .eq('id', id)
       .maybeSingle();
 
@@ -82,6 +82,19 @@ export async function GET(
           kind: 'rejected',
         });
       }
+    }
+
+    // Fallback: jika status laporan sudah verified/rejected tapi tidak ada baris
+    // verifikasi (mis. data lama / di-set langsung tanpa lewat panel staf),
+    // tetap tampilkan event terminal agar linimasa konsisten dengan status.
+    const hasTerminal = events.some((e) => e.kind === 'verified' || e.kind === 'rejected');
+    if (!hasTerminal && (report.status === 'verified' || report.status === 'rejected')) {
+      const at = (report as { updated_at?: string | null }).updated_at || report.created_at;
+      events.push(
+        report.status === 'verified'
+          ? { key: 'status-verified', label: 'Laporan Terverifikasi', at, note: null, kind: 'verified' }
+          : { key: 'status-rejected', label: 'Laporan Ditolak', at, note: null, kind: 'rejected' }
+      );
     }
 
     return NextResponse.json({ status: report.status, events });
