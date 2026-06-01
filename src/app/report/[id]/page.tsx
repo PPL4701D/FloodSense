@@ -53,6 +53,7 @@ type ReportDetail = {
 };
 
 import VerificationPanel from '@/components/reports/VerificationPanel';
+import StatusTimeline from '@/components/reports/StatusTimeline';
 import { useAuth } from '@/lib/hooks/useAuth';
 
 export default function ReportDetailPage() {
@@ -259,6 +260,11 @@ export default function ReportDetailPage() {
             <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Bantu validasi laporan ini:</p>
             <VoteButtons reportId={report.id} />
           </div>
+        </div>
+
+        {/* FR-053: Status Timeline */}
+        <div className="card" style={{ padding: '1.25rem' }}>
+          <StatusTimeline reportId={report.id} />
         </div>
 
         {/* Photos (if any) */}
