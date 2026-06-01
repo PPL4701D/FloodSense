@@ -37,6 +37,32 @@ function timeAgo(iso: string): string {
   return `${Math.floor(hr / 24)} hari lalu`;
 }
 
+/** Avatar komentar: tampil foto bila valid, fallback ke inisial bila kosong/gagal load. */
+function CommentAvatar({ url, name }: { url: string | null; name: string }) {
+  const [broken, setBroken] = useState(false);
+  const showImg = !!url && !broken;
+  return (
+    <div style={{
+      width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0,
+      background: 'var(--bg-elevated)', border: '1px solid var(--border-primary)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+      fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary-400)',
+    }}>
+      {showImg ? (
+        <img
+          src={url as string}
+          alt=""
+          referrerPolicy="no-referrer"
+          onError={() => setBroken(true)}
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+        />
+      ) : (
+        name.charAt(0).toUpperCase() || '?'
+      )}
+    </div>
+  );
+}
+
 export default function CommentSection({
   reportId,
   reporterId,
@@ -144,18 +170,7 @@ export default function CommentSection({
             const canDelete = user && c.user_id === user.id && !c.is_deleted;
             return (
               <div key={c.id} style={{ display: 'flex', gap: '0.625rem' }}>
-                <div style={{
-                  width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0,
-                  background: 'var(--bg-elevated)', border: '1px solid var(--border-primary)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-                  fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary-400)',
-                }}>
-                  {c.profiles?.avatar_url ? (
-                    <img src={c.profiles.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  ) : (
-                    c.profiles?.full_name?.charAt(0)?.toUpperCase() || '?'
-                  )}
-                </div>
+                <CommentAvatar url={c.profiles?.avatar_url ?? null} name={c.profiles?.full_name || 'Pengguna'} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '0.8125rem', fontWeight: 700 }}>{c.profiles?.full_name || 'Pengguna'}</span>
