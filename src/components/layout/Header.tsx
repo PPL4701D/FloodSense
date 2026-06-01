@@ -1,6 +1,6 @@
 'use client';
 
-import { Droplets, LogIn, LogOut } from 'lucide-react';
+import { LogIn, LogOut } from 'lucide-react';
 import { useAuth } from '@/lib/hooks/useAuth';
 import Link from 'next/link';
 import NotificationBell from './NotificationBell';
@@ -27,13 +27,13 @@ export default function Header() {
         display: 'flex', alignItems: 'center', gap: '0.5rem',
         textDecoration: 'none', color: 'var(--text-primary)'
       }}>
-        <div style={{
-          width: '32px', height: '32px', borderRadius: 'var(--radius-sm)',
-          background: 'linear-gradient(135deg, var(--primary-600), #0891b2)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <Droplets size={18} color="white" />
-        </div>
+        <img
+          src="/floodsense-logo.png"
+          alt="FloodSense"
+          width={36}
+          height={36}
+          style={{ display: 'block', objectFit: 'contain' }}
+        />
         <span style={{ fontSize: '1rem', fontWeight: 700 }}>
           <span className="text-gradient">Flood</span>Sense
         </span>
