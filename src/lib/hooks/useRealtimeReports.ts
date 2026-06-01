@@ -45,7 +45,11 @@ export function useRealtimeReports() {
   const supabase = createClient();
 
   const fetchReports = useCallback(async () => {
-    setLoading(true);
+    // Hanya tampilkan loader penuh saat belum ada data (initial load).
+    // Refetch latar (event realtime / reconnect WebSocket setelah idle) berjalan
+    // senyap: data lama tetap tampil sehingga hitungan "laporan aktif" tidak
+    // flash "loading" lagi.
+    if (useMapStore.getState().reports.length === 0) setLoading(true);
     try {
       const sinceDate = new Date(Date.now() - TIME_RANGES[activeFilters.timeRange]).toISOString();
 
