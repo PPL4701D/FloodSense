@@ -10,6 +10,7 @@ import { useAreaStatus } from '@/lib/hooks/useAreaStatus';
 import HeatmapLayer from './HeatmapLayer';
 import ClusterLayer from './ClusterLayer';
 import LayerControl from './LayerControl';
+import MapFilterControl from './MapFilterControl';
 import type { MapReport, SeverityLevel, AreaStatusLevel } from '@/types/database';
 import { SEVERITY_LABELS, AREA_STATUS_COLORS, AREA_STATUS_LABELS } from '@/types/database';
 import { Navigation, AlertTriangle, Droplets, Loader2, Info } from 'lucide-react';
@@ -508,6 +509,9 @@ export default function FloodMap() {
         <LocationSearch onSelect={(lat, lng) => setSearchedLocation({ lat, lng })} />
       </div>
 
+      {/* FR-045: Filter Control (keparahan / status / waktu) */}
+      <MapFilterControl />
+
       {/* Layer Control */}
       <LayerControl
         preferences={layerPreferences}
@@ -558,6 +562,30 @@ export default function FloodMap() {
               }} />
               <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
                 {SEVERITY_LABELS[sev]}
+              </span>
+            </div>
+          ))}
+
+          {/* FR-046: Status Area */}
+          <p style={{
+            fontSize: '0.6875rem', fontWeight: 700,
+            color: 'var(--text-primary)', margin: '0.5rem 0 0.125rem',
+            letterSpacing: '0.03em', textTransform: 'uppercase',
+            borderTop: '1px solid var(--border-primary)', paddingTop: '0.5rem',
+          }}>
+            Status Area
+          </p>
+          {(['waspada', 'siaga', 'banjir_aktif', 'mereda'] as AreaStatusLevel[]).map((st) => (
+            <div key={st} style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+              <div style={{
+                width: '12px', height: '12px', borderRadius: '50%',
+                background: 'transparent',
+                border: `2px solid ${AREA_STATUS_COLORS[st]}`,
+                flexShrink: 0,
+                boxShadow: `0 0 6px ${AREA_STATUS_COLORS[st]}80`,
+              }} />
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                {AREA_STATUS_LABELS[st]}
               </span>
             </div>
           ))}
