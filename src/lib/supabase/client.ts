@@ -1,20 +1,21 @@
 import { createBrowserClient } from '@supabase/ssr';
+import { processLock } from '@supabase/auth-js';
 
 /**
- * Bypass navigator.locks untuk auth token.
+ * Pakai processLock (lock in-memory) sebagai pengganti default navigatorLock.
  *
  * Default @supabase/auth-js mengunci token via Web Locks API
- * (lock:sb-<ref>-auth-token). Saat soft-refresh / navigasi balik, halaman lama
- * bisa masuk bfcache TANPA melepas lock → getSession() hang selamanya
+ * (lock:sb-<ref>-auth-token). Saat soft-refresh / navigasi client-side, halaman
+ * lama bisa masuk bfcache TANPA melepas lock → getSession() hang selamanya
  * → UI stuck "loading" + tampak tidak login (hanya pulih dengan hard refresh).
  *
- * Lock no-op ini menjalankan callback langsung tanpa Web Locks, sehingga tidak
- * pernah deadlock. Trade-off: refresh token antar-tab tidak diserialisasi
- * (aman untuk aplikasi ini).
+ * processLock TETAP men-serialisasi operasi auth di dalam tab (mencegah race
+ * saat banyak getSession bersamaan, mis. di halaman /reports), TAPI tidak
+ * memakai Web Locks API sehingga tidak pernah deadlock lintas-konteks/bfcache.
  */
 const clientOptions = {
   auth: {
-    lock: async <R>(_name: string, _acquireTimeout: number, fn: () => Promise<R>): Promise<R> => fn(),
+    lock: processLock,
   },
 };
 
