@@ -19,10 +19,7 @@ export const metadata: Metadata = {
     'crowdsourcing',
   ],
   manifest: '/manifest.json',
-  icons: {
-    icon: '/favicon.ico',
-    apple: '/icons/apple-touch-icon.png',
-  },
+  // Favicon ditangani konvensi App Router via src/app/icon.png (logo FloodSense).
 };
 
 export const viewport: Viewport = {
