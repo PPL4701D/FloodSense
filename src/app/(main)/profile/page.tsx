@@ -53,10 +53,10 @@ export default function ProfilePage() {
   };
 
   const menuItems = [
-    { href: '/my-reports', icon: FileText, label: 'Laporan Saya' },
-    { href: '/leaderboard', icon: Trophy, label: 'Papan Peringkat' },
-    { href: '/settings/notifications', icon: Bell, label: 'Notifikasi' },
-    { href: '/settings', icon: Settings, label: 'Pengaturan' },
+    { href: '/my-reports', icon: FileText, label: 'Laporan Saya', color: '#3b82f6' },
+    { href: '/leaderboard', icon: Trophy, label: 'Papan Peringkat', color: '#f59e0b' },
+    { href: '/settings/notifications', icon: Bell, label: 'Notifikasi', color: '#0891b2' },
+    { href: '/settings', icon: Settings, label: 'Pengaturan', color: '#94a3b8' },
   ];
 
   return (
@@ -72,17 +72,23 @@ export default function ProfilePage() {
       <div className="profile-page">
         <div className="profile-grid">
           {/* Profile Card */}
-          <div className="card" style={{ textAlign: 'center', padding: '1.5rem' }}>
+          <div className="card" style={{ textAlign: 'center', padding: 0, overflow: 'hidden' }}>
+            {/* Cover banner */}
             <div style={{
-              width: '80px', height: '80px', borderRadius: 'var(--radius-full)',
-              background: 'linear-gradient(135deg, var(--primary-600), #0891b2)',
+              height: '88px',
+              background: 'radial-gradient(140% 120% at 100% 0%, #0891b2, transparent 60%), linear-gradient(120deg, var(--primary-600), var(--primary-500))',
+            }} />
+            <div style={{ padding: '0 1.5rem 1.5rem' }}>
+            <div style={{
+              width: '92px', height: '92px', borderRadius: 'var(--radius-full)',
+              background: 'linear-gradient(135deg, var(--primary-500), #0891b2)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              margin: '0 auto 1rem', border: '3px solid var(--bg-card)',
-              boxShadow: '0 0 20px rgba(59,130,246,0.3)', overflow: 'hidden',
-              fontSize: '1.75rem', fontWeight: 800, color: 'white',
+              margin: '-46px auto 1rem', border: '4px solid var(--bg-card)',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.35)', overflow: 'hidden',
+              fontSize: '2rem', fontWeight: 800, color: 'white', position: 'relative',
             }}>
               {profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <img src={profile.avatar_url} alt="" referrerPolicy="no-referrer" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               ) : (
                 profile?.full_name?.charAt(0)?.toUpperCase() || '?'
               )}
@@ -94,8 +100,8 @@ export default function ProfilePage() {
               <Mail size={12} /> {user?.email}
             </p>
 
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem' }}>
-              <div style={{ textAlign: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'stretch', gap: '0.75rem' }}>
+              <div style={{ textAlign: 'center', flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', justifyContent: 'center' }}>
                   <Shield size={14} color="var(--primary-400)" />
                   <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>
@@ -105,7 +111,7 @@ export default function ProfilePage() {
                 <p style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: '2px' }}>Peran</p>
               </div>
               <div style={{ width: '1px', background: 'var(--border-primary)' }} />
-              <div style={{ textAlign: 'center' }}>
+              <div style={{ textAlign: 'center', flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', justifyContent: 'center' }}>
                   <Star size={14} color="#eab308" />
                   <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>
@@ -120,6 +126,7 @@ export default function ProfilePage() {
             <div style={{ marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border-primary)', textAlign: 'left' }}>
               <ReputationBadge score={profile?.reputation_score || 0} showProgress />
             </div>
+            </div>
           </div>
 
           {/* Menu + Logout */}
@@ -129,10 +136,16 @@ export default function ProfilePage() {
                 <Link key={item.href} href={item.href} style={{ textDecoration: 'none', color: 'inherit' }}>
                   <div className="card" style={{
                     display: 'flex', alignItems: 'center', gap: '0.75rem',
-                    padding: '0.875rem 1rem', cursor: 'pointer',
+                    padding: '0.75rem 0.875rem', cursor: 'pointer',
                   }}>
-                    <item.icon size={18} color="var(--text-secondary)" />
-                    <span style={{ flex: 1, fontSize: '0.875rem' }}>{item.label}</span>
+                    <span style={{
+                      width: '34px', height: '34px', borderRadius: 'var(--radius-md)',
+                      background: `${item.color}1f`, border: `1px solid ${item.color}33`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                    }}>
+                      <item.icon size={17} color={item.color} />
+                    </span>
+                    <span style={{ flex: 1, fontSize: '0.875rem', fontWeight: 500 }}>{item.label}</span>
                     <ChevronRight size={16} color="var(--text-muted)" />
                   </div>
                 </Link>

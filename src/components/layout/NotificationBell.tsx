@@ -121,21 +121,35 @@ export default function NotificationBell() {
 
   return (
     <div ref={wrapRef} style={{ position: 'relative' }}>
+      <style>{`
+        .notif-dropdown {
+          position: absolute; top: calc(100% + 10px); right: 0;
+          width: 340px; max-width: calc(100vw - 20px);
+        }
+        @media (max-width: 480px) {
+          .notif-dropdown {
+            position: fixed; top: 62px; left: 10px; right: 10px;
+            width: auto; max-width: none;
+          }
+        }
+      `}</style>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="btn-ghost"
+        className="hdr-iconbtn"
         title="Notifikasi"
         aria-label="Notifikasi"
         style={{
-          position: 'relative', padding: '6px', borderRadius: 'var(--radius-sm)',
-          border: 'none', cursor: 'pointer', background: 'none', display: 'flex',
+          position: 'relative', width: '36px', height: '36px', borderRadius: '50%',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
+          background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)',
+          cursor: 'pointer', flexShrink: 0, transition: 'background var(--transition-fast)',
         }}
       >
-        <Bell size={20} color="var(--text-secondary)" />
+        <Bell size={18} color="var(--text-secondary)" />
         {unread > 0 && (
           <span
             style={{
-              position: 'absolute', top: '0px', right: '0px',
+              position: 'absolute', top: '-1px', right: '-1px',
               minWidth: '16px', height: '16px', padding: '0 4px',
               borderRadius: '8px', background: '#ef4444', color: '#fff',
               fontSize: '0.625rem', fontWeight: 700, lineHeight: '16px',
@@ -149,10 +163,8 @@ export default function NotificationBell() {
 
       {open && (
         <div
-          className="glass"
+          className="glass notif-dropdown"
           style={{
-            position: 'absolute', top: 'calc(100% + 8px)', right: 0,
-            width: '320px', maxWidth: 'calc(100vw - 24px)',
             borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-primary)',
             boxShadow: '0 12px 40px rgba(0,0,0,0.45)', overflow: 'hidden', zIndex: 2100,
           }}
