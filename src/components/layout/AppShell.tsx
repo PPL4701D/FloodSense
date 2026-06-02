@@ -2,6 +2,7 @@
 
 import Header from '@/components/layout/Header';
 import BottomNav from '@/components/layout/BottomNav';
+import NotificationToast from '@/components/notifications/NotificationToast';
 
 /**
  * AppShell — layout wrapper untuk semua halaman (main).
@@ -22,6 +23,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <>
       {/* Header — always on top */}
       <Header />
+
+      {/* In-app realtime notification toasts */}
+      <NotificationToast />
 
       {/* Main content area — starts below header, clips overflow */}
       <main
