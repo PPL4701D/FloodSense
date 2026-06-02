@@ -8,8 +8,8 @@ self.addEventListener('push', function (event) {
     const data = event.data.json();
     const options = {
       body: data.body || 'Notifikasi baru dari FloodSense',
-      icon: data.icon || '/icons/icon-192x192.png',
-      badge: '/icons/icon-72x72.png',
+      icon: data.icon || '/floodsense-logo.png',
+      badge: '/floodsense-logo.png',
       vibrate: [200, 100, 200],
       data: {
         url: data.url || '/',

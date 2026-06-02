@@ -10,6 +10,7 @@ import {
   Bell, ChevronLeft, Loader2, MapPin, Plus,
   X, Crosshair, ChevronDown, ChevronUp,
 } from 'lucide-react';
+import PushPermissionPrompt from '@/components/notifications/PushPermissionPrompt';
 
 const LocationPickerMap = dynamic(() => import('@/components/map/LocationPickerMap'), {
   ssr: false,
@@ -175,6 +176,10 @@ export default function NotificationPrefsPage() {
       </div>
 
       <div style={{ padding: '1rem', maxWidth: '500px', margin: '0 auto' }}>
+        {/* FR-033: Push notification opt-in/opt-out */}
+        <div style={{ marginBottom: '1rem' }}>
+          <PushPermissionPrompt />
+        </div>
         {loading ? (
           <div style={{ textAlign: 'center', padding: '3rem' }}>
             <WaveLoader size={48} />
