@@ -20,6 +20,14 @@ const NOTIF_ICONS: Record<string, typeof Bell> = {
   area_status_update: MapPin,
 };
 
+const NOTIF_COLORS: Record<string, string> = {
+  status_change: '#3b82f6',
+  report_verified: '#22c55e',
+  report_rejected: '#ef4444',
+  broadcast: '#8b5cf6',
+  area_status_update: '#0891b2',
+};
+
 export default function NotificationsPage() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -124,6 +132,7 @@ export default function NotificationsPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {notifications.map((notif) => {
               const Icon = NOTIF_ICONS[notif.type] || Bell;
+              const color = NOTIF_COLORS[notif.type] || 'var(--primary-400)';
               return (
                 <div
                   key={notif.id}
@@ -137,24 +146,25 @@ export default function NotificationsPage() {
                   style={{
                     display: 'flex', gap: '0.75rem', padding: '0.875rem 1rem',
                     cursor: notif.related_report_id || !notif.is_read ? 'pointer' : 'default',
-                    opacity: notif.is_read ? 0.7 : 1,
-                    borderColor: notif.is_read ? 'var(--border-primary)' : 'var(--primary-500)',
+                    opacity: notif.is_read ? 0.62 : 1,
+                    borderColor: 'var(--border-primary)',
+                    borderLeft: notif.is_read ? '1px solid var(--border-primary)' : `3px solid ${color}`,
                   }}
                 >
                   <div style={{
-                    width: '36px', height: '36px', borderRadius: 'var(--radius-md)',
-                    background: notif.is_read ? 'var(--bg-elevated)' : 'rgba(59,130,246,0.15)',
+                    width: '38px', height: '38px', borderRadius: 'var(--radius-md)',
+                    background: `${color}1f`, border: `1px solid ${color}33`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                   }}>
-                    <Icon size={16} color={notif.is_read ? 'var(--text-muted)' : 'var(--primary-400)'} />
+                    <Icon size={17} color={color} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontSize: '0.8125rem', fontWeight: notif.is_read ? 400 : 600, marginBottom: '0.125rem' }}>
                       {notif.title}
                     </p>
                     <p style={{
-                      fontSize: '0.75rem', color: 'var(--text-secondary)',
-                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                      fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.4,
+                      display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
                     }}>
                       {notif.body}
                     </p>

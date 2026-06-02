@@ -545,10 +545,10 @@ export default function FloodMap() {
         <LocateButton userLocation={userLocation} onLocate={setUserLocation} />
       </MapContainer>
 
-      {/* Search Bar */}
-      <div style={{ 
-        position: 'absolute', top: '24px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000, 
-        width: 'calc(100% - 32px)', maxWidth: '420px',
+      {/* Search Bar — sebelah kanan tombol Layer (baris 1) */}
+      <div style={{
+        position: 'absolute', top: '16px', left: '68px', right: '16px', zIndex: 1001,
+        maxWidth: '460px',
         boxShadow: 'var(--shadow-md)', borderRadius: 'var(--radius-md)'
       }}>
         <LocationSearch onSelect={(lat, lng, label) => setSearchedLocation({ lat, lng, label })} />
@@ -637,10 +637,10 @@ export default function FloodMap() {
         </div>
       )}
 
-      {/* Report Count */}
+      {/* Report Count — baris 2 kanan, sejajar tombol Filter */}
       <div className="glass" style={{
-        position: 'absolute', top: '16px', right: '16px', zIndex: 1000,
-        padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-md)',
+        position: 'absolute', top: '74px', right: '16px', zIndex: 1000,
+        padding: '0.45rem 0.7rem', borderRadius: '999px',
         display: 'flex', alignItems: 'center', gap: '0.375rem',
       }}>
         {isLoading ? (

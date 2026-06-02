@@ -47,7 +47,11 @@ const STATUS_LABELS: Record<ReportStatus, string> = {
 const PAGE_SIZE = 20;
 
 const selectStyle: React.CSSProperties = {
-  width: 'auto', paddingRight: '1.75rem', appearance: 'none', cursor: 'pointer',
+  width: 'auto', paddingRight: '2.1rem', appearance: 'none', cursor: 'pointer',
+  backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")",
+  backgroundRepeat: 'no-repeat',
+  backgroundPosition: 'right 0.7rem center',
+  backgroundSize: '14px',
 };
 
 export default function ReportsPage() {
@@ -225,46 +229,42 @@ export default function ReportsPage() {
           />
         </div>
 
-        {/* Filter row 1: severity, status, region, sort */}
-        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-          <select className="input" style={selectStyle} value={severity} onChange={(e) => setSeverity(e.target.value as SeverityLevel | 'all')}>
+        {/* Filter: keparahan / status / wilayah / sort — grid 2 kolom */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.5rem' }}>
+          <select className="input" style={{ ...selectStyle, width: '100%' }} value={severity} onChange={(e) => setSeverity(e.target.value as SeverityLevel | 'all')}>
             <option value="all">Semua keparahan</option>
             <option value="ringan">Ringan</option>
             <option value="sedang">Sedang</option>
             <option value="berat">Berat</option>
             <option value="sangat_berat">Sangat Berat</option>
           </select>
-          <select className="input" style={selectStyle} value={status} onChange={(e) => setStatus(e.target.value as ReportStatus | 'all')}>
+          <select className="input" style={{ ...selectStyle, width: '100%' }} value={status} onChange={(e) => setStatus(e.target.value as ReportStatus | 'all')}>
             <option value="all">Semua status</option>
             {(Object.keys(STATUS_LABELS) as ReportStatus[]).map((s) => (
               <option key={s} value={s}>{STATUS_LABELS[s]}</option>
             ))}
           </select>
-          <select className="input" style={selectStyle} value={regionId} onChange={(e) => setRegionId(e.target.value)}>
+          <select className="input" style={{ ...selectStyle, width: '100%' }} value={regionId} onChange={(e) => setRegionId(e.target.value)}>
             <option value="all">Semua wilayah</option>
             {regions.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
           </select>
-          <select className="input" style={selectStyle} value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
-            <option value="terbaru">Terbaru</option>
-            <option value="kredibilitas">Kredibilitas</option>
+          <select className="input" style={{ ...selectStyle, width: '100%' }} value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
+            <option value="terbaru">Urutkan: Terbaru</option>
+            <option value="kredibilitas">Urutkan: Kredibilitas</option>
           </select>
         </div>
 
-        {/* Filter row 2: date range + reset */}
-        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-          <input type="date" className="input" style={{ width: 'auto' }} value={dateFrom} max={dateTo || undefined} onChange={(e) => setDateFrom(e.target.value)} />
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
-          <input type="date" className="input" style={{ width: 'auto' }} value={dateTo} min={dateFrom || undefined} onChange={(e) => setDateTo(e.target.value)} />
-          {hasActiveFilter && (
+        {hasActiveFilter && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
             <button
               onClick={resetFilters}
               className="btn-ghost"
-              style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--primary-400)', background: 'none', border: 'none', cursor: 'pointer', marginLeft: 'auto' }}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--primary-400)', background: 'none', border: 'none', cursor: 'pointer' }}
             >
-              <RotateCcw size={13} /> Reset
+              <RotateCcw size={13} /> Reset filter
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* List */}
