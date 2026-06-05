@@ -12,6 +12,7 @@
 
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { createClient } from '@/lib/supabase/client';
 import WaveLoader from '@/components/ui/WaveLoader';
@@ -22,7 +23,7 @@ import { StatusDonut, SeverityBars, type Slice } from '@/components/dashboard/Di
 import RegionComparison, { type RegionDatum } from '@/components/dashboard/RegionComparison';
 import ExportButtons from '@/components/dashboard/ExportButtons';
 import type { ExportRow } from '@/lib/utils/exportData';
-import { LayoutDashboard, FileText, CheckCircle2, Clock, AlertTriangle, TrendingUp, PieChart, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, FileText, CheckCircle2, Clock, AlertTriangle, TrendingUp, PieChart, BarChart3, Radio } from 'lucide-react';
 import type { ReportStatus, SeverityLevel } from '@/types/database';
 
 interface Row {
@@ -224,7 +225,14 @@ export default function DashboardPage() {
           <LayoutDashboard size={20} color="var(--primary-400)" />
           <h1 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Dashboard</h1>
         </div>
-        <ExportButtons rows={exportRows} meta={{ title: 'Laporan FloodSense', subtitle: exportSubtitle }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          {(role === 'tlm' || role === 'admin') && (
+            <Link href="/broadcast" className="btn btn-ghost" style={{ fontSize: '0.75rem', gap: '0.35rem', padding: '0.45rem 0.75rem' }}>
+              <Radio size={14} color="var(--primary-400)" /> Broadcast
+            </Link>
+          )}
+          <ExportButtons rows={exportRows} meta={{ title: 'Laporan FloodSense', subtitle: exportSubtitle }} />
+        </div>
       </div>
 
       {/* Filters */}
