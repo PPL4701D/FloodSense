@@ -3,9 +3,11 @@
 /**
  * FR-023 + FR-024 — Dashboard dengan Filter Wilayah & Waktu
  * FR-025/026/028 (PBI-12) — Grafik tren, distribusi status/keparahan, perbandingan wilayah.
+ * FR-027 (PBI-13) — Ekspor data terfilter ke CSV & PDF.
  *
  * Halaman /dashboard (staf/tlm/admin). CascadingRegionFilter + DateRangePicker
- * sinkron ke URL query params, lalu menampilkan KPI dan grafik laporan terfilter.
+ * sinkron ke URL query params, lalu menampilkan KPI, grafik, dan tombol ekspor
+ * untuk laporan terfilter.
  */
 
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
@@ -18,6 +20,8 @@ import TimeRangeFilter, { type TimeRange } from '@/components/dashboard/TimeRang
 import TrendChart, { type TrendPoint } from '@/components/dashboard/TrendChart';
 import { StatusDonut, SeverityBars, type Slice } from '@/components/dashboard/DistributionChart';
 import RegionComparison, { type RegionDatum } from '@/components/dashboard/RegionComparison';
+import ExportButtons from '@/components/dashboard/ExportButtons';
+import type { ExportRow } from '@/lib/utils/exportData';
 import { LayoutDashboard, FileText, CheckCircle2, Clock, AlertTriangle, TrendingUp, PieChart, BarChart3 } from 'lucide-react';
 import type { ReportStatus, SeverityLevel } from '@/types/database';
 
@@ -26,6 +30,9 @@ interface Row {
   severity: SeverityLevel;
   created_at: string;
   region_id: string | null;
+  reporter_id: string | null;
+  address: string | null;
+  water_height_cm: number | null;
 }
 
 const STATUS_META: Record<string, { label: string; color: string }> = {
@@ -57,6 +64,7 @@ export default function DashboardPage() {
   const [range, setRange] = useState<TimeRange>({ preset: '7d', from: daysAgoISO(7), to: new Date().toISOString().slice(0, 10) });
   const [rows, setRows] = useState<Row[]>([]);
   const [regionNames, setRegionNames] = useState<Record<string, string>>({});
+  const [reporterNames, setReporterNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const hydrated = useRef(false);
 
@@ -82,7 +90,7 @@ export default function DashboardPage() {
     window.history.replaceState(null, '', `?${p.toString()}`);
   }, [regionId, range]);
 
-  // Peta id wilayah → nama (untuk grafik perbandingan)
+  // Peta id wilayah → nama (untuk grafik perbandingan & ekspor)
   useEffect(() => {
     (async () => {
       const { data } = await supabase.from('regions').select('id, name');
@@ -92,11 +100,21 @@ export default function DashboardPage() {
     })();
   }, [supabase]);
 
+  // Peta id pelapor → nama (untuk kolom Pelapor pada ekspor)
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.from('profiles').select('id, full_name');
+      const map: Record<string, string> = {};
+      (data as Array<{ id: string; full_name: string }> | null)?.forEach((r) => { map[r.id] = r.full_name; });
+      setReporterNames(map);
+    })();
+  }, [supabase]);
+
   const fetchSummary = useCallback(async () => {
     setLoading(true);
     let q = supabase
       .from('reports')
-      .select('status, severity, created_at, region_id')
+      .select('status, severity, created_at, region_id, reporter_id, address, water_height_cm')
       .gte('created_at', new Date(range.from + 'T00:00:00').toISOString())
       .lte('created_at', new Date(range.to + 'T23:59:59').toISOString())
       .order('created_at', { ascending: true });
@@ -116,6 +134,7 @@ export default function DashboardPage() {
   // FR-025 — tren harian (total + terverifikasi)
   const trend = useMemo<TrendPoint[]>(() => {
     const buckets = new Map<string, { total: number; verified: number }>();
+    // pre-isi semua hari pada rentang agar garis kontinu
     const start = new Date(range.from + 'T00:00:00');
     const end = new Date(range.to + 'T00:00:00');
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
@@ -157,6 +176,24 @@ export default function DashboardPage() {
       .slice(0, 7);
   }, [rows, regionNames]);
 
+  // FR-027 — baris ekspor (detail: pelapor, ketinggian, wilayah, alamat)
+  const exportRows = useMemo<ExportRow[]>(() =>
+    rows.map((r, i) => ({
+      no: i + 1,
+      tanggal: new Date(r.created_at).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+      pelapor: r.reporter_id ? (reporterNames[r.reporter_id] ?? '-') : '-',
+      status: STATUS_META[r.status]?.label ?? r.status,
+      keparahan: SEVERITY_META[r.severity]?.label ?? r.severity,
+      ketinggian: r.water_height_cm != null ? String(r.water_height_cm) : '-',
+      wilayah: r.region_id ? (regionNames[r.region_id] ?? '-') : '-',
+      alamat: r.address ?? '-',
+    })), [rows, regionNames, reporterNames]);
+
+  const exportSubtitle = useMemo(() => {
+    const wil = regionId ? (regionNames[regionId] ?? 'Wilayah terpilih') : 'Semua wilayah';
+    return `${wil} · ${range.from} s/d ${range.to}`;
+  }, [regionId, regionNames, range.from, range.to]);
+
   if (authLoading) {
     return <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><WaveLoader size={48} /></div>;
   }
@@ -182,9 +219,12 @@ export default function DashboardPage() {
         }
       `}</style>
       <div className="dash-page">
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-        <LayoutDashboard size={20} color="var(--primary-400)" />
-        <h1 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Dashboard</h1>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <LayoutDashboard size={20} color="var(--primary-400)" />
+          <h1 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Dashboard</h1>
+        </div>
+        <ExportButtons rows={exportRows} meta={{ title: 'Laporan FloodSense', subtitle: exportSubtitle }} />
       </div>
 
       {/* Filters */}
