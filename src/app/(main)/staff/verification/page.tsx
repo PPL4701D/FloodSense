@@ -5,6 +5,7 @@ import WaveLoader from '@/components/ui/WaveLoader';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import type {
   SeverityLevel, ReportStatus, VerificationDecision,
 } from '@/types/database';
@@ -189,6 +190,19 @@ export default function StaffVerificationPage() {
               {filteredReports.length} laporan memerlukan perhatian
             </p>
           </div>
+          {/* FR-050: Antrian pemeriksaan ulang terjadwal */}
+          <Link
+            href="/staff/recheck"
+            title="Antrian Pemeriksaan Ulang"
+            style={{
+              display: 'flex', alignItems: 'center', gap: '0.375rem',
+              padding: '6px 10px', borderRadius: '8px', textDecoration: 'none',
+              background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)',
+              fontSize: '0.75rem', color: 'var(--text-secondary)',
+            }}
+          >
+            <Calendar size={12} /> Re-check
+          </Link>
           {/* Filter dropdown */}
           <div style={{ position: 'relative' }}>
             <button
