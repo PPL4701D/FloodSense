@@ -38,16 +38,43 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'VAPID belum dikonfigurasi' }, { status: 500 });
     }
 
-    const { userIds, title, body, url } = await req.json();
+    const { userIds, title, body, url, type } = await req.json();
     if (!Array.isArray(userIds) || userIds.length === 0 || !title || !body) {
       return NextResponse.json({ error: 'userIds, title, body wajib diisi' }, { status: 400 });
     }
 
     const admin = createAdminClient();
+
+    // FR-058 (PBI-33) — Hormati preferensi notifikasi penerima (bila 'type' diberikan):
+    // matikan tipe tertentu + jam tenang (broadcast/peringatan tetap menembus jam tenang).
+    let targetIds: string[] = userIds;
+    if (type) {
+      const { data: prefRows } = await admin
+        .from('notification_preferences')
+        .select('user_id, status_change, report_verified, report_rejected, broadcast, area_status_update, quiet_start, quiet_end')
+        .in('user_id', userIds);
+      const prefMap = new Map((prefRows ?? []).map((p) => [p.user_id as string, p]));
+      const hourWIB = (new Date().getUTCHours() + 7) % 24; // app timezone Asia/Jakarta
+      targetIds = userIds.filter((uid: string) => {
+        const p = prefMap.get(uid) as Record<string, unknown> | undefined;
+        if (!p) return true; // belum set preferensi → default semua aktif
+        if (p[type] === false) return false; // tipe dimatikan
+        const qs = p.quiet_start as number | null, qe = p.quiet_end as number | null;
+        if (type !== 'broadcast' && qs !== null && qe !== null) {
+          const inQuiet = qs <= qe ? (hourWIB >= qs && hourWIB < qe) : (hourWIB >= qs || hourWIB < qe);
+          if (inQuiet) return false;
+        }
+        return true;
+      });
+      if (targetIds.length === 0) {
+        return NextResponse.json({ success: true, sent: 0, message: 'Ditahan oleh preferensi penerima' });
+      }
+    }
+
     const { data: subs } = await admin
       .from('push_subscriptions')
       .select('id, endpoint, p256dh, auth')
-      .in('user_id', userIds);
+      .in('user_id', targetIds);
 
     if (!subs || subs.length === 0) {
       return NextResponse.json({ success: true, sent: 0, message: 'Tidak ada subscriber' });

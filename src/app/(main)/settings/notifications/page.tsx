@@ -11,6 +11,7 @@ import {
   X, Crosshair, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import PushPermissionPrompt from '@/components/notifications/PushPermissionPrompt';
+import NotificationPreferences from '@/components/notifications/NotificationPreferences';
 
 const LocationPickerMap = dynamic(() => import('@/components/map/LocationPickerMap'), {
   ssr: false,
@@ -179,6 +180,11 @@ export default function NotificationPrefsPage() {
         {/* FR-033: Push notification opt-in/opt-out */}
         <div style={{ marginBottom: '1rem' }}>
           <PushPermissionPrompt />
+        </div>
+
+        {/* FR-058: Preferensi jenis notifikasi + jam tenang */}
+        <div style={{ marginBottom: '1rem' }}>
+          <NotificationPreferences />
         </div>
         {loading ? (
           <div style={{ textAlign: 'center', padding: '3rem' }}>
