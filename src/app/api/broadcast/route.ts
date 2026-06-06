@@ -145,7 +145,7 @@ export async function POST(req: NextRequest) {
         const res = await fetch(`${origin}/api/push/send`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', cookie: req.headers.get('cookie') ?? '' },
-          body: JSON.stringify({ userIds, title, body: message, url: '/notifications' }),
+          body: JSON.stringify({ userIds, title, body: message, url: '/notifications', type: 'broadcast' }),
         });
         if (res.ok) {
           const j = await res.json();
