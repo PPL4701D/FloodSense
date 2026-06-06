@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Offline — FloodSense</title>
+  <style>
+    body { margin:0; font-family: system-ui, -apple-system, sans-serif; background:#0F172A; color:#e2e8f0;
+      display:flex; align-items:center; justify-content:center; min-height:100vh; text-align:center; padding:1.5rem; }
+    .box { max-width:340px; }
+    img { width:72px; height:72px; border-radius:18px; margin-bottom:1rem; }
+    h1 { font-size:1.25rem; margin:0 0 .5rem; }
+    p { font-size:.875rem; color:#94a3b8; line-height:1.5; margin:0 0 1.25rem; }
+    button { background:#3b82f6; color:#fff; border:none; padding:.625rem 1.25rem; border-radius:8px; font-size:.875rem; font-weight:600; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <img src="/floodsense-logo.png" alt="FloodSense" />
+    <h1>Anda Sedang Offline</h1>
+    <p>Tidak ada koneksi internet. Beberapa data mungkin tidak ter-update. Periksa koneksi lalu coba lagi.</p>
+    <button onclick="location.reload()">Coba Lagi</button>
+  </div>
+</body>
+</html>

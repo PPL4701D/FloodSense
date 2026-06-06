@@ -3,6 +3,7 @@
 import Header from '@/components/layout/Header';
 import BottomNav from '@/components/layout/BottomNav';
 import NotificationToast from '@/components/notifications/NotificationToast';
+import InstallPrompt from '@/components/pwa/InstallPrompt';
 
 /**
  * AppShell — layout wrapper untuk semua halaman (main).
@@ -26,6 +27,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* In-app realtime notification toasts */}
       <NotificationToast />
+
+      {/* PWA: service worker + prompt pasang aplikasi (A2HS) */}
+      <InstallPrompt />
 
       {/* Main content area — starts below header, clips overflow */}
       <main
