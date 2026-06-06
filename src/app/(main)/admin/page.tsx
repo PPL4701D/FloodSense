@@ -9,7 +9,7 @@ import WaveLoader from '@/components/ui/WaveLoader';
 import {
   Users, ScrollText, Shield, Activity, LayoutDashboard,
   ChevronRight, AlertTriangle, CheckCircle2, FileText,
-  TrendingUp, Crown,
+  TrendingUp, Crown, MapPinned,
 } from 'lucide-react';
 
 interface SystemStats {
@@ -81,6 +81,13 @@ export default function AdminPage() {
       color: '#8b5cf6',
       title: 'Audit Log',
       desc: 'Riwayat semua aksi sistem',
+    },
+    {
+      href: '/admin/regions',
+      icon: MapPinned,
+      color: '#f59e0b',
+      title: 'Manajemen Wilayah',
+      desc: 'CRUD provinsi, kabupaten & kecamatan',
     },
     {
       href: '/dashboard',
