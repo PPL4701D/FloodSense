@@ -203,6 +203,19 @@ export default function StaffVerificationPage() {
           >
             <Calendar size={12} /> Re-check
           </Link>
+          {/* FR-021: Deteksi duplikat & spam */}
+          <Link
+            href="/staff/clusters"
+            title="Deteksi Duplikat & Spam"
+            style={{
+              display: 'flex', alignItems: 'center', gap: '0.375rem',
+              padding: '6px 10px', borderRadius: '8px', textDecoration: 'none',
+              background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)',
+              fontSize: '0.75rem', color: 'var(--text-secondary)',
+            }}
+          >
+            <Flag size={12} /> Duplikat
+          </Link>
           {/* Filter dropdown */}
           <div style={{ position: 'relative' }}>
             <button
