@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
+import { sendEmail, buildNewReportEmail } from '@/lib/email/resend';
 
 /**
  * FR-006 + FR-021: Report Submission with Spam/Duplicate Detection
@@ -177,6 +178,31 @@ export async function POST(req: NextRequest) {
       }
     } catch (e: unknown) {
       console.error('Proximity notification error:', e instanceof Error ? e.message : String(e));
+    }
+
+    // FR-034 (PBI-17): Email alert ke staf/TLM/admin saat laporan baru (non-flagged).
+    if (!isDuplicate) {
+      try {
+        const admin = createAdminClient();
+        const { data: staffProfiles } = await admin.from('profiles').select('id').in('role', ['staf', 'tlm', 'admin']);
+        const staffIds = new Set((staffProfiles ?? []).map((p) => p.id));
+        if (staffIds.size > 0) {
+          const { data: authData } = await admin.auth.admin.listUsers({ perPage: 1000 });
+          const emails = (authData?.users ?? [])
+            .filter((u) => staffIds.has(u.id) && u.email)
+            .map((u) => u.email as string);
+          if (emails.length > 0) {
+            const { subject, html } = buildNewReportEmail({
+              severity, address: address || null, waterHeight: water_height_cm || null,
+              description: description || null, reportUrl: `${req.nextUrl.origin}/report/${report.id}`,
+            });
+            const result = await sendEmail(emails, subject, html);
+            if (!result.ok && !result.skipped) console.error('Staff email alert error:', result.error);
+          }
+        }
+      } catch (e) {
+        console.error('Staff email alert exception:', e instanceof Error ? e.message : String(e));
+      }
     }
 
     return NextResponse.json({
