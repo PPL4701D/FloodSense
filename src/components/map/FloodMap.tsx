@@ -11,9 +11,10 @@ import HeatmapLayer from './HeatmapLayer';
 import ClusterLayer from './ClusterLayer';
 import LayerControl from './LayerControl';
 import MapFilterControl from './MapFilterControl';
+import TimelapseSlider from './TimelapseSlider';
 import type { MapReport, SeverityLevel, AreaStatusLevel } from '@/types/database';
 import { SEVERITY_LABELS, AREA_STATUS_COLORS, AREA_STATUS_LABELS } from '@/types/database';
-import { Navigation, AlertTriangle, Droplets, Loader2, Info, MapPin } from 'lucide-react';
+import { Navigation, AlertTriangle, Droplets, Loader2, Info, MapPin, History } from 'lucide-react';
 import VoteButtons from '@/components/reports/VoteButtons';
 import Link from 'next/link';
 import LocationSearch from './LocationSearch';
@@ -404,11 +405,14 @@ export default function FloodMap() {
     isLoading,
     setLayerPreferences,
     setSelectedReport,
+    timelapseActive,
+    timelapsePoints,
   } = useMapStore();
 
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [searchedLocation, setSearchedLocation] = useState<{lat: number, lng: number, label: string} | null>(null);
   const [showLegend, setShowLegend] = useState(false);
+  const [showTimelapse, setShowTimelapse] = useState(false);
   const areaStatusMap = useAreaStatus();
 
   // Auto-watch position on mount (silent — only shows if user already granted permission)
@@ -453,10 +457,10 @@ export default function FloodMap() {
         {/* Auto-fit bounds */}
         <AutoFitBounds reports={reports} />
 
-        {/* Heatmap Overlay */}
+        {/* Heatmap Overlay — saat time-lapse aktif, pakai titik historis */}
         <HeatmapLayer
-          points={heatmapPoints}
-          visible={layerPreferences.showHeatmap}
+          points={timelapseActive ? timelapsePoints : heatmapPoints}
+          visible={layerPreferences.showHeatmap || timelapseActive}
         />
 
         {/* Cluster Overlay */}
@@ -657,6 +661,27 @@ export default function FloodMap() {
           laporan aktif
         </span>
       </div>
+
+      {/* FR-057: Tombol Time-lapse (kiri bawah) */}
+      {!showTimelapse && (
+        <button
+          onClick={() => setShowTimelapse(true)}
+          title="Time-lapse historis"
+          style={{
+            position: 'absolute', bottom: '24px', left: '16px', zIndex: 1000,
+            display: 'flex', alignItems: 'center', gap: '0.4rem',
+            padding: '0.5rem 0.75rem', borderRadius: '999px',
+            background: 'var(--bg-card)', border: '1px solid var(--border-primary)',
+            cursor: 'pointer', boxShadow: 'var(--shadow-md)',
+            fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)',
+          }}
+        >
+          <History size={16} color="var(--primary-400)" /> Time-lapse
+        </button>
+      )}
+
+      {/* FR-057: Panel Time-lapse */}
+      {showTimelapse && <TimelapseSlider onClose={() => setShowTimelapse(false)} />}
     </div>
   );
 }
