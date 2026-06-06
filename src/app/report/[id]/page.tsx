@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import VoteButtons from '@/components/reports/VoteButtons';
+import ShareButton from '@/components/reports/ShareButton';
 
 import WaveLoader from '@/components/ui/WaveLoader';
 
@@ -202,6 +203,7 @@ export default function ReportDetailPage() {
         <div style={{ flex: 1 }}>
           <h1 style={{ fontSize: '1rem', fontWeight: 700 }}>Detail Laporan</h1>
         </div>
+        <ShareButton reportId={report.id} title={`Banjir ${SEVERITY_LABELS[report.severity]}${report.address ? ' — ' + report.address : ''}`} />
       </div>
 
       <div style={{ padding: '1rem', maxWidth: '640px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
