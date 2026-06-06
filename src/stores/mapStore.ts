@@ -26,12 +26,19 @@ interface MapState {
   selectedReport: MapReport | null;
   isLoading: boolean;
 
+  // FR-057 (PBI-32) — Time-lapse historis: saat aktif, heatmap memakai titik
+  // hasil pemutaran historis (override), bukan data realtime.
+  timelapseActive: boolean;
+  timelapsePoints: HeatmapPoint[];
+
   // Actions
   setReports: (reports: MapReport[]) => void;
   setSelectedReport: (report: MapReport | null) => void;
   setFilters: (filters: Partial<MapFilters>) => void;
   setLayerPreferences: (prefs: Partial<MapLayerPreferences>) => void;
   setLoading: (loading: boolean) => void;
+  setTimelapseActive: (active: boolean) => void;
+  setTimelapsePoints: (points: HeatmapPoint[]) => void;
 }
 
 function computeHeatmapPoints(reports: MapReport[]): HeatmapPoint[] {
@@ -58,6 +65,8 @@ export const useMapStore = create<MapState>()(
       },
       selectedReport: null,
       isLoading: true,
+      timelapseActive: false,
+      timelapsePoints: [],
 
       setReports: (reports) =>
         set({
@@ -79,6 +88,10 @@ export const useMapStore = create<MapState>()(
         })),
 
       setLoading: (loading) => set({ isLoading: loading }),
+
+      setTimelapseActive: (active) =>
+        set({ timelapseActive: active, timelapsePoints: active ? [] : [] }),
+      setTimelapsePoints: (points) => set({ timelapsePoints: points }),
     }),
     {
       name: 'floodsense-map-prefs',
