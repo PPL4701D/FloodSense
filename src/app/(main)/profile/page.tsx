@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   User, Mail, Shield, Star, MapPin, LogIn,
-  FileText, Settings, Bell, ChevronRight, Loader2, Trophy,
+  FileText, Bell, ChevronRight, Loader2, Trophy, ShieldCheck,
 } from 'lucide-react';
 import ReputationBadge from '@/components/reputation/ReputationBadge';
 
@@ -56,7 +56,7 @@ export default function ProfilePage() {
     { href: '/my-reports', icon: FileText, label: 'Laporan Saya', color: '#3b82f6' },
     { href: '/leaderboard', icon: Trophy, label: 'Papan Peringkat', color: '#f59e0b' },
     { href: '/settings/notifications', icon: Bell, label: 'Notifikasi', color: '#0891b2' },
-    { href: '/settings', icon: Settings, label: 'Pengaturan', color: '#94a3b8' },
+    { href: '/settings/account', icon: ShieldCheck, label: 'Keamanan Akun', color: '#22c55e' },
   ];
 
   return (
