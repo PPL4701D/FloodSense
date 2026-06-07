@@ -185,12 +185,27 @@ export async function POST(req: NextRequest) {
       console.error('Proximity notification error:', e instanceof Error ? e.message : String(e));
     }
 
-    // FR-034 (PBI-17): Email alert ke staf/TLM/admin saat laporan baru (non-flagged).
+    // FR-034 (PBI-17): Email alert ke staf penanggung jawab area laporan (non-flagged).
+    // Staf yang ber-assigned_region pada wilayah laporan atau leluhurnya (kecamatan →
+    // kabupaten → provinsi) dianggap bertanggung jawab. Fallback: bila tidak ada staf
+    // ber-area yang cocok, kirim ke seluruh staf/TLM/admin agar alert tidak hilang.
     if (!isDuplicate) {
       try {
         const admin = createAdminClient();
-        const { data: staffProfiles } = await admin.from('profiles').select('id').in('role', ['staf', 'tlm', 'admin']);
-        const staffIds = new Set((staffProfiles ?? []).map((p) => p.id));
+        let staffIds = new Set<string>();
+        if (region_id) {
+          const { data: anc } = await admin.rpc('region_ancestor_ids', { p_region: region_id });
+          const ancIds = ((anc as Array<{ id: string }> | null) ?? []).map((r) => r.id);
+          if (ancIds.length > 0) {
+            const { data: regionStaff } = await admin
+              .from('profiles').select('id').in('role', ['staf', 'tlm', 'admin']).in('assigned_region_id', ancIds);
+            staffIds = new Set((regionStaff ?? []).map((p) => p.id));
+          }
+        }
+        if (staffIds.size === 0) {
+          const { data: allStaff } = await admin.from('profiles').select('id').in('role', ['staf', 'tlm', 'admin']);
+          staffIds = new Set((allStaff ?? []).map((p) => p.id));
+        }
         if (staffIds.size > 0) {
           const { data: authData } = await admin.auth.admin.listUsers({ perPage: 1000 });
           const emails = (authData?.users ?? [])

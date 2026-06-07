@@ -35,7 +35,7 @@ export async function GET() {
 
     const { data: profiles, error: profilesError } = await adminClient
       .from('profiles')
-      .select('id, full_name, role, reputation_score, avatar_url, created_at')
+      .select('id, full_name, role, reputation_score, avatar_url, created_at, assigned_region_id')
       .order('created_at', { ascending: false });
 
     if (profilesError) {
@@ -48,10 +48,19 @@ export async function GET() {
       (authData?.users ?? []).map((u) => [u.id, u.email ?? null])
     );
 
-    // 4. Merge email into each profile
+    // 3b. Nama wilayah tugas (assigned_region) untuk ditampilkan di UI.
+    const regionIds = Array.from(new Set((profiles ?? []).map((p) => p.assigned_region_id).filter(Boolean)));
+    const regionNameMap = new Map<string, string>();
+    if (regionIds.length > 0) {
+      const { data: regs } = await adminClient.from('regions').select('id, name').in('id', regionIds as string[]);
+      (regs ?? []).forEach((r) => regionNameMap.set(r.id, r.name));
+    }
+
+    // 4. Merge email + nama wilayah tugas into each profile
     const users = (profiles ?? []).map((p) => ({
       ...p,
       email: emailMap.get(p.id) ?? null,
+      assigned_region_name: p.assigned_region_id ? (regionNameMap.get(p.assigned_region_id) ?? null) : null,
     }));
 
     return NextResponse.json({ users });
@@ -86,27 +95,35 @@ export async function PATCH(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { user_id, role } = body;
+    const { user_id, role, assigned_region_id } = body;
 
-    if (!user_id || !role) {
-      return NextResponse.json({ error: 'user_id and role are required' }, { status: 400 });
+    if (!user_id) {
+      return NextResponse.json({ error: 'user_id wajib diisi' }, { status: 400 });
+    }
+    if (role === undefined && assigned_region_id === undefined) {
+      return NextResponse.json({ error: 'Tidak ada perubahan' }, { status: 400 });
     }
 
     const validRoles = ['warga', 'staf', 'tlm', 'admin'];
-    if (!validRoles.includes(role)) {
+    if (role !== undefined && !validRoles.includes(role)) {
       return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
     }
 
     // Don't let admin change their own role
-    if (user_id === user.id) {
+    if (user_id === user.id && role !== undefined) {
       return NextResponse.json({ error: 'Cannot change your own role' }, { status: 400 });
     }
+
+    // FR-034: assigned_region_id menentukan area tanggung jawab staf (untuk email alert).
+    const patch: Record<string, unknown> = {};
+    if (role !== undefined) patch.role = role;
+    if (assigned_region_id !== undefined) patch.assigned_region_id = assigned_region_id || null;
 
     // Use admin client to bypass RLS when updating
     const adminClient = createAdminClient();
     const { error } = await adminClient
       .from('profiles')
-      .update({ role })
+      .update(patch)
       .eq('id', user_id);
 
     if (error) {
@@ -116,10 +133,10 @@ export async function PATCH(req: NextRequest) {
     // Audit log
     await adminClient.from('audit_logs').insert({
       actor_id: user.id,
-      action: 'role_change',
+      action: 'user_update',
       target_type: 'user',
       target_id: user_id,
-      details: { new_role: role },
+      details: patch,
     });
 
     return NextResponse.json({ success: true });
