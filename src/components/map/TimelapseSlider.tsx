@@ -108,7 +108,7 @@ export default function TimelapseSlider({ onClose }: { onClose: () => void }) {
     <div
       className="glass"
       style={{
-        position: 'absolute', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
+        position: 'absolute', bottom: 'calc(104px + env(safe-area-inset-bottom, 0px))', left: '50%', transform: 'translateX(-50%)',
         zIndex: 1200, width: 'min(440px, calc(100vw - 32px))', padding: '0.875rem 1rem',
         borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)',
         border: '1px solid var(--border-primary)',
