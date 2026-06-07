@@ -20,6 +20,8 @@ export default defineConfig({
 
   use: {
     baseURL: 'http://localhost:3000',
+    // Interval antar-aksi (ms) untuk mode headed — set via env SLOWMO, mis. SLOWMO=800.
+    launchOptions: { slowMo: Number(process.env.SLOWMO) || 0 },
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
