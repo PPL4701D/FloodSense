@@ -47,11 +47,29 @@ function FitBounds({ points }: { points: LatLng[] }) {
   return null;
 }
 
+// Perbaiki ukuran peta yang dirender di dalam modal (tile tidak penuh tanpa ini).
+function InvalidateSize() {
+  const map = useMap();
+  useEffect(() => {
+    const t1 = setTimeout(() => map.invalidateSize(), 120);
+    const t2 = setTimeout(() => map.invalidateSize(), 400);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [map]);
+  return null;
+}
+
+// Pusatkan peta ke koordinat hasil geocode (hanya bila belum ada boundary).
+function Recenter({ center, zoom, active }: { center: LatLng; zoom: number; active: boolean }) {
+  const map = useMap();
+  useEffect(() => { if (active) map.setView(center, zoom); }, [center, zoom, active, map]);
+  return null;
+}
+
 export default function RegionBoundaryEditor({
   region,
   onClose,
 }: {
-  region: { id: string; name: string };
+  region: { id: string; name: string; parentName?: string };
   onClose: () => void;
 }) {
   const [points, setPoints] = useState<LatLng[]>([]);
@@ -63,6 +81,8 @@ export default function RegionBoundaryEditor({
   const [msg, setMsg] = useState<string | null>(null);
   const [showPaste, setShowPaste] = useState(false);
   const [pasteText, setPasteText] = useState('');
+  const [center, setCenter] = useState<LatLng>(INDONESIA);
+  const [zoom, setZoom] = useState(5);
 
   useEffect(() => {
     (async () => {
@@ -75,10 +95,19 @@ export default function RegionBoundaryEditor({
           setPoints(pts);
           setInitialPoints(pts);
           if (j.geojson.type === 'MultiPolygon') setRawGeoJSON(j.geojson);
+        } else {
+          // Belum ada boundary → geocode nama wilayah agar peta terpusat ke wilayah ini
+          // (bukan selalu di center Indonesia yang sama untuk semua region).
+          try {
+            const q = [region.name, region.parentName, 'Indonesia'].filter(Boolean).join(', ');
+            const g = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=id&q=${encodeURIComponent(q)}`, { headers: { Accept: 'application/json' } });
+            const arr = await g.json();
+            if (Array.isArray(arr) && arr[0]) { setCenter([parseFloat(arr[0].lat), parseFloat(arr[0].lon)]); setZoom(12); }
+          } catch { /* abaikan */ }
         }
       } catch { /* abaikan */ } finally { setLoading(false); }
     })();
-  }, [region.id]);
+  }, [region.id, region.name, region.parentName]);
 
   const addPoint = useCallback((p: LatLng) => { setRawGeoJSON(null); setMsg(null); setPoints((prev) => [...prev, p]); }, []);
   const undo = () => { setRawGeoJSON(null); setPoints((prev) => prev.slice(0, -1)); };
@@ -159,8 +188,10 @@ export default function RegionBoundaryEditor({
               <Loader2 size={16} className="animate-spin" /> Memuat…
             </div>
           ) : (
-            <MapContainer center={points[0] ?? INDONESIA} zoom={points.length ? 11 : 5} style={{ height: '100%', width: '100%' }} scrollWheelZoom>
+            <MapContainer center={center} zoom={zoom} style={{ height: '100%', width: '100%' }} scrollWheelZoom>
               <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              <InvalidateSize />
+              <Recenter center={center} zoom={zoom} active={initialPoints.length === 0} />
               <ClickCapture onAdd={addPoint} />
               <FitBounds points={initialPoints} />
               {points.length >= 3 ? (

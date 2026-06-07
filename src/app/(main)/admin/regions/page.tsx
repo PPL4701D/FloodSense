@@ -45,7 +45,7 @@ export default function AdminRegionsPage() {
   const [form, setForm] = useState<FormState | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [boundaryRegion, setBoundaryRegion] = useState<{ id: string; name: string } | null>(null);
+  const [boundaryRegion, setBoundaryRegion] = useState<{ id: string; name: string; parentName?: string } | null>(null);
 
   useEffect(() => {
     if (!authLoading && role !== 'admin') router.replace('/');
@@ -149,7 +149,7 @@ export default function AdminRegionsPage() {
                 {r.level !== 'provinsi' && <>Induk: {nameOf(r.parent_id)} · </>}{r.code ? `Kode: ${r.code}` : 'Tanpa kode'}
               </p>
             </div>
-            <button onClick={() => setBoundaryRegion({ id: r.id, name: r.name })} title="Boundary (peta)" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex' }}>
+            <button onClick={() => setBoundaryRegion({ id: r.id, name: r.name, parentName: r.parent_id ? nameOf(r.parent_id) : undefined })} title="Boundary (peta)" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex' }}>
               <Map size={15} color="var(--primary-400)" />
             </button>
             <button onClick={() => { setError(null); setForm({ id: r.id, name: r.name, level: r.level, parent_id: r.parent_id ?? '', code: r.code ?? '' }); }} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex' }}>
