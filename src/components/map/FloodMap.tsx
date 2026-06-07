@@ -407,6 +407,7 @@ export default function FloodMap() {
     setSelectedReport,
     timelapseActive,
     timelapsePoints,
+    timelapseReports,
   } = useMapStore();
 
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
@@ -463,21 +464,30 @@ export default function FloodMap() {
           visible={layerPreferences.showHeatmap || timelapseActive}
         />
 
-        {/* Cluster Overlay */}
+        {/* Cluster Overlay (disembunyikan saat time-lapse) */}
         <ClusterLayer
           reports={reports}
-          visible={layerPreferences.showClusters}
+          visible={layerPreferences.showClusters && !timelapseActive}
           areaStatusMap={areaStatusMap}
           onReportClick={(report) => setSelectedReport(report)}
         />
 
-        {/* Individual Markers (when clusters off) */}
-        {layerPreferences.showMarkers && !layerPreferences.showClusters && (
+        {/* Marker: saat time-lapse pakai laporan historis (muncul bertahap),
+            selain itu pakai data realtime. */}
+        {timelapseActive ? (
           <ReportMarkers
-            reports={reports}
+            reports={timelapseReports}
             areaStatusMap={areaStatusMap}
             onReportClick={(report) => setSelectedReport(report)}
           />
+        ) : (
+          layerPreferences.showMarkers && !layerPreferences.showClusters && (
+            <ReportMarkers
+              reports={reports}
+              areaStatusMap={areaStatusMap}
+              onReportClick={(report) => setSelectedReport(report)}
+            />
+          )
         )}
 
         {/* User location blue dot */}
