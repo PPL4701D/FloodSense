@@ -22,8 +22,8 @@ type View = 'hidden' | 'banner' | 'mini';
 
 const ANCHOR: React.CSSProperties = {
   position: 'fixed',
-  bottom: 'calc(96px + env(safe-area-inset-bottom, 0px))',
-  right: '16px',
+  bottom: 'calc(160px + env(safe-area-inset-bottom, 0px))',
+  left: '16px',
   zIndex: 2300,
 };
 
