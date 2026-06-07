@@ -14,7 +14,7 @@ import {
   Shield, Clock, CheckCircle2, XCircle, AlertTriangle,
   Droplets, MapPin, ChevronDown, Loader2, ThumbsUp, ThumbsDown,
   Calendar, Eye, ChevronLeft, ExternalLink, Filter,
-  Search, Flag, TrendingUp, BarChart3, X, Activity, User,
+  Search, Flag, TrendingUp, BarChart3, X, Activity, User, CalendarClock,
 } from 'lucide-react';
 
 // ---- Types ----
@@ -215,6 +215,19 @@ export default function StaffVerificationPage() {
             }}
           >
             <Flag size={12} /> Duplikat
+          </Link>
+          {/* FR-050: Antrian Peninjauan Ulang Terjadwal */}
+          <Link
+            href="/staff/recheck"
+            title="Antrian Peninjauan Ulang Terjadwal"
+            style={{
+              display: 'flex', alignItems: 'center', gap: '0.375rem',
+              padding: '6px 10px', borderRadius: '8px', textDecoration: 'none',
+              background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)',
+              fontSize: '0.75rem', color: 'var(--text-secondary)',
+            }}
+          >
+            <CalendarClock size={12} /> Peninjauan Ulang{stats.reviewing > 0 ? ` (${stats.reviewing})` : ''}
           </Link>
           {/* Filter dropdown */}
           <div style={{ position: 'relative' }}>
