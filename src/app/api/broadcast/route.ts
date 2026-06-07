@@ -70,38 +70,37 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Gagal menyimpan broadcast' }, { status: 500 });
     }
 
-    // 3a. Perluas wilayah target → sertakan seluruh turunannya
+    // 3a. Perluas wilayah target → sertakan seluruh turunannya via RPC rekursif
     //     (mis. memilih Provinsi otomatis mencakup kabupaten & kecamatan di bawahnya).
-    const { data: allRegions } = await admin.from('regions').select('id, name, parent_id');
-    const childrenOf = new Map<string, string[]>();
-    const nameOf = new Map<string, string>();
-    (allRegions as Array<{ id: string; name: string; parent_id: string | null }> | null)?.forEach((r) => {
-      nameOf.set(r.id, r.name);
-      if (r.parent_id) {
-        const arr = childrenOf.get(r.parent_id) ?? [];
-        arr.push(r.id);
-        childrenOf.set(r.parent_id, arr);
-      }
-    });
+    //     Memakai RPC agar tidak terbatas limit 1000 baris saat memuat tabel regions.
     const expandedRegions = new Set<string>(regionIds);
-    const queue = [...regionIds];
-    while (queue.length > 0) {
-      const cur = queue.shift()!;
-      for (const child of childrenOf.get(cur) ?? []) {
-        if (!expandedRegions.has(child)) { expandedRegions.add(child); queue.push(child); }
-      }
-    }
+    await Promise.all(
+      regionIds.map(async (rid) => {
+        const { data } = await admin.rpc('region_descendant_ids', { p_region: rid });
+        ((data as Array<{ id: string }> | null) ?? []).forEach((r) => expandedRegions.add(r.id));
+      })
+    );
     const regionScope = Array.from(expandedRegions);
 
-    // 3b. Kumpulkan penerima (unik, kecuali pengirim):
-    //     pelapor di wilayah target + petugas ber-assigned_region di wilayah target.
+    // Nama wilayah terpilih (untuk judul notifikasi).
+    const { data: selRegions } = await admin.from('regions').select('id, name').in('id', regionIds);
+    const nameOf = new Map<string, string>(
+      ((selRegions as Array<{ id: string; name: string }> | null) ?? []).map((r) => [r.id, r.name])
+    );
+
+    // 3b. Kumpulkan penerima (unik, kecuali pengirim): pelapor di wilayah target +
+    //     petugas ber-assigned_region. Query di-chunk agar aman bila scope wilayah besar.
     const recipients = new Set<string>();
-    const [{ data: reporters }, { data: officers }] = await Promise.all([
-      admin.from('reports').select('reporter_id').in('region_id', regionScope),
-      admin.from('profiles').select('id').in('assigned_region_id', regionScope),
-    ]);
-    (reporters as Array<{ reporter_id: string }> | null)?.forEach((r) => r.reporter_id && recipients.add(r.reporter_id));
-    (officers as Array<{ id: string }> | null)?.forEach((o) => o.id && recipients.add(o.id));
+    const CHUNK = 150;
+    for (let i = 0; i < regionScope.length; i += CHUNK) {
+      const slice = regionScope.slice(i, i + CHUNK);
+      const [{ data: reporters }, { data: officers }] = await Promise.all([
+        admin.from('reports').select('reporter_id').in('region_id', slice),
+        admin.from('profiles').select('id').in('assigned_region_id', slice),
+      ]);
+      (reporters as Array<{ reporter_id: string }> | null)?.forEach((r) => r.reporter_id && recipients.add(r.reporter_id));
+      (officers as Array<{ id: string }> | null)?.forEach((o) => o.id && recipients.add(o.id));
+    }
 
     // 3c. Fail-open: peringatan banjir tidak boleh "nyangkut" ke 0 orang.
     //     Bila wilayah target belum memiliki pelapor/petugas terasosiasi,

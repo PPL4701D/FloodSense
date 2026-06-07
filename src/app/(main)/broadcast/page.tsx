@@ -14,7 +14,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { createClient } from '@/lib/supabase/client';
 import WaveLoader from '@/components/ui/WaveLoader';
-import { Radio, Send, Info, AlertTriangle, Siren, Loader2, CheckCircle2, MapPin } from 'lucide-react';
+import { Radio, Send, Info, AlertTriangle, Siren, Loader2, CheckCircle2, MapPin, Search, X } from 'lucide-react';
 
 interface RegionRow { id: string; name: string; level: string; parent_id: string | null }
 interface BroadcastRow {
@@ -40,7 +40,10 @@ export default function BroadcastPage() {
   const { role, loading: authLoading } = useAuth();
   const supabase = createClient();
 
-  const [regions, setRegions] = useState<RegionRow[]>([]);
+  const [search, setSearch] = useState('');
+  const [searchResults, setSearchResults] = useState<RegionRow[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [regionMeta, setRegionMeta] = useState<Record<string, { name: string; level: string }>>({});
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [severity, setSeverity] = useState<'informasi' | 'waspada' | 'darurat'>('waspada');
   const [message, setMessage] = useState('');
@@ -54,12 +57,30 @@ export default function BroadcastPage() {
     if (!authLoading && !(role && ['tlm', 'admin'].includes(role))) router.replace('/');
   }, [authLoading, role, router]);
 
+  // Pencarian wilayah (debounce) — tidak memuat semua (ribuan) baris sekaligus.
   useEffect(() => {
-    (async () => {
-      const { data } = await supabase.from('regions').select('id, name, level, parent_id').order('name');
-      setRegions((data as RegionRow[] | null) ?? []);
-    })();
-  }, [supabase]);
+    const term = search.trim();
+    if (term.length < 2) { setSearchResults([]); setSearching(false); return; }
+    setSearching(true);
+    const t = setTimeout(async () => {
+      const { data } = await supabase
+        .from('regions')
+        .select('id, name, level, parent_id')
+        .ilike('name', `%${term.replace(/[%,]/g, '')}%`)
+        .order('level', { ascending: true })
+        .order('name', { ascending: true })
+        .limit(30);
+      const rows = (data as RegionRow[] | null) ?? [];
+      setSearchResults(rows);
+      setRegionMeta((prev) => {
+        const next = { ...prev };
+        rows.forEach((r) => { next[r.id] = { name: r.name, level: r.level }; });
+        return next;
+      });
+      setSearching(false);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [search, supabase]);
 
   const fetchHistory = useCallback(async () => {
     const { data } = await supabase
@@ -72,12 +93,33 @@ export default function BroadcastPage() {
 
   useEffect(() => { fetchHistory(); }, [fetchHistory]);
 
-  const toggle = (id: string) => {
+  // Resolusi nama wilayah untuk riwayat (id yang belum ada di cache).
+  useEffect(() => {
+    const ids = new Set<string>();
+    history.forEach((b) => b.target_regions.forEach((id) => { if (!regionMeta[id]) ids.add(id); }));
+    if (ids.size === 0) return;
+    (async () => {
+      const { data } = await supabase.from('regions').select('id, name, level').in('id', Array.from(ids));
+      const rows = (data as Array<{ id: string; name: string; level: string }> | null) ?? [];
+      if (rows.length === 0) return;
+      setRegionMeta((prev) => {
+        const next = { ...prev };
+        rows.forEach((r) => { next[r.id] = { name: r.name, level: r.level }; });
+        return next;
+      });
+    })();
+  }, [history, regionMeta, supabase]);
+
+  const toggle = (r: RegionRow) => {
+    setRegionMeta((prev) => prev[r.id] ? prev : { ...prev, [r.id]: { name: r.name, level: r.level } });
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (next.has(r.id)) next.delete(r.id); else next.add(r.id);
       return next;
     });
+  };
+  const removeSelected = (id: string) => {
+    setSelected((prev) => { const next = new Set(prev); next.delete(id); return next; });
   };
 
   const handleSubmit = async () => {
@@ -110,7 +152,7 @@ export default function BroadcastPage() {
     return <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><WaveLoader size={48} /></div>;
   }
 
-  const regionName = (id: string) => regions.find((r) => r.id === id)?.name ?? id.slice(0, 8);
+  const regionName = (id: string) => regionMeta[id]?.name ?? id.slice(0, 8);
 
   return (
     <>
@@ -163,23 +205,64 @@ export default function BroadcastPage() {
           <p style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
             Wilayah Target {selected.size > 0 && <span style={{ color: 'var(--primary-400)' }}>({selected.size})</span>}
           </p>
-          <div className="broadcast-regions" style={{ overflowY: 'auto', border: '1px solid var(--border-primary)', borderRadius: 'var(--radius-md)', padding: '0.5rem' }}>
-            {regions.length === 0 ? (
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', padding: '0.5rem' }}>Memuat wilayah…</p>
-            ) : (
-              regions.map((r) => {
-                const checked = selected.has(r.id);
-                return (
-                  <label key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.35rem 0.4rem', cursor: 'pointer', borderRadius: 'var(--radius-sm)', fontSize: '0.8125rem' }}>
-                    <input type="checkbox" checked={checked} onChange={() => toggle(r.id)} style={{ accentColor: 'var(--primary-500)', cursor: 'pointer' }} />
-                    <MapPin size={12} color="var(--text-muted)" />
-                    <span style={{ flex: 1 }}>{r.name}</span>
-                    <span style={{ fontSize: '0.625rem', color: 'var(--text-muted)', textTransform: 'capitalize' }}>{r.level}</span>
-                  </label>
-                );
-              })
+          {/* Chip wilayah terpilih */}
+          {selected.size > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginBottom: '0.5rem' }}>
+              {Array.from(selected).map((id) => (
+                <span key={id} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.25rem 0.5rem', fontSize: '0.75rem', background: 'var(--primary-500)', color: '#fff', borderRadius: '999px' }}>
+                  <MapPin size={11} />
+                  {regionName(id)}
+                  <button type="button" onClick={() => removeSelected(id)} style={{ display: 'flex', background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#fff', opacity: 0.85 }}>
+                    <X size={12} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Search bar */}
+          <div style={{ position: 'relative' }}>
+            <Search size={14} color="var(--text-muted)" style={{ position: 'absolute', left: '0.625rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Cari provinsi / kabupaten / kecamatan…"
+              style={{
+                width: '100%', padding: '0.5rem 0.625rem 0.5rem 2rem', fontSize: '0.8125rem',
+                background: 'var(--bg-elevated)', color: 'var(--text-primary)',
+                border: '1px solid var(--border-primary)', borderRadius: 'var(--radius-sm)',
+              }}
+            />
+            {search && (
+              <button type="button" onClick={() => setSearch('')} style={{ position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                <X size={14} />
+              </button>
             )}
           </div>
+
+          {/* Hasil pencarian */}
+          {search.trim().length >= 2 && (
+            <div className="broadcast-regions" style={{ overflowY: 'auto', border: '1px solid var(--border-primary)', borderRadius: 'var(--radius-md)', padding: '0.5rem', marginTop: '0.5rem' }}>
+              {searching ? (
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', padding: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Loader2 size={12} className="animate-spin" /> Mencari…</p>
+              ) : searchResults.length === 0 ? (
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', padding: '0.5rem' }}>Tidak ada wilayah cocok.</p>
+              ) : (
+                searchResults.map((r) => {
+                  const checked = selected.has(r.id);
+                  return (
+                    <label key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.35rem 0.4rem', cursor: 'pointer', borderRadius: 'var(--radius-sm)', fontSize: '0.8125rem', background: checked ? 'var(--bg-elevated)' : 'transparent' }}>
+                      <input type="checkbox" checked={checked} onChange={() => toggle(r)} style={{ accentColor: 'var(--primary-500)', cursor: 'pointer' }} />
+                      <MapPin size={12} color="var(--text-muted)" />
+                      <span style={{ flex: 1 }}>{r.name}</span>
+                      <span style={{ fontSize: '0.625rem', color: 'var(--text-muted)', textTransform: 'capitalize' }}>{r.level}</span>
+                    </label>
+                  );
+                })
+              )}
+            </div>
+          )}
         </div>
 
         {/* Message */}
