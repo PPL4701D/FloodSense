@@ -7,6 +7,7 @@
  */
 
 import { ImageResponse } from 'next/og';
+import { headers } from 'next/headers';
 
 export const runtime = 'edge';
 export const alt = 'Laporan Banjir FloodSense';
@@ -43,12 +44,22 @@ async function getReport(id: string): Promise<Row | null> {
   }
 }
 
+async function getOrigin(): Promise<string> {
+  try {
+    const h = await headers();
+    const host = h.get('host');
+    if (host) return `${h.get('x-forwarded-proto') ?? 'https'}://${host}`;
+  } catch { /* abaikan */ }
+  return process.env.NEXT_PUBLIC_SITE_URL || 'https://floodsense-indonesia.vercel.app';
+}
+
 export default async function Image({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const report = await getReport(id);
   const sev = report ? SEV[report.severity] ?? SEV.sedang : SEV.sedang;
   const title = report ? `Banjir ${sev.label}` : 'Laporan Banjir';
   const location = report?.address || 'Lokasi tidak diketahui';
+  const logoUrl = `${await getOrigin()}/floodsense-logo.png`;
 
   return new ImageResponse(
     (
@@ -64,9 +75,8 @@ export default async function Image({ params }: { params: Promise<{ id: string }
 
         {/* Brand */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '40px' }}>
-          <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px' }}>
-            🌊
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={logoUrl} width={64} height={64} alt="FloodSense" style={{ borderRadius: '14px' }} />
           <div style={{ fontSize: '34px', fontWeight: 800 }}>FloodSense</div>
         </div>
 
