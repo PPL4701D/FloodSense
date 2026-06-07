@@ -6,8 +6,9 @@ import { useAuth } from '@/lib/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import {
   Users, Shield, ChevronLeft, Loader2, Search,
-  ChevronDown, Crown, UserCheck, User, X, AlertTriangle,
+  ChevronDown, Crown, UserCheck, User, X, AlertTriangle, MapPin,
 } from 'lucide-react';
+import RegionFilter from '@/components/dashboard/RegionFilter';
 
 interface UserProfile {
   id: string;
@@ -17,6 +18,8 @@ interface UserProfile {
   reputation_score: number;
   avatar_url: string | null;
   created_at: string;
+  assigned_region_id?: string | null;
+  assigned_region_name?: string | null;
 }
 
 const ROLE_META: Record<string, { label: string; color: string; icon: typeof User }> = {
@@ -36,6 +39,7 @@ export default function AdminUsersPage() {
   const [filterRole, setFilterRole] = useState('all');
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [newRole, setNewRole] = useState('');
+  const [newRegion, setNewRegion] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -70,10 +74,13 @@ export default function AdminUsersPage() {
     if (!editingUser || !newRole) return;
     setSubmitting(true);
     try {
+      const payload: { user_id: string; role?: string; assigned_region_id?: string | null } = { user_id: editingUser.id };
+      if (newRole !== editingUser.role) payload.role = newRole;
+      if (newRegion !== (editingUser.assigned_region_id ?? null)) payload.assigned_region_id = newRegion;
       const res = await fetch('/api/admin/users', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: editingUser.id, role: newRole }),
+        body: JSON.stringify(payload),
       });
       if (res.ok) {
         setEditingUser(null);
@@ -205,7 +212,7 @@ export default function AdminUsersPage() {
                   </span>
                   {u.id !== user?.id && (
                     <button
-                      onClick={() => { setEditingUser(u); setNewRole(u.role); }}
+                      onClick={() => { setEditingUser(u); setNewRole(u.role); setNewRegion(u.assigned_region_id ?? null); }}
                       style={{
                         background: 'none', border: '1px solid var(--border-primary)',
                         borderRadius: 'var(--radius-sm)', padding: '4px 8px',
@@ -275,18 +282,39 @@ export default function AdminUsersPage() {
                 </p>
               </div>
             )}
-            <button
-              onClick={handleRoleChange}
-              disabled={submitting || newRole === editingUser.role}
-              className="btn btn-primary"
-              style={{
-                width: '100%', padding: '12px',
-                opacity: submitting || newRole === editingUser.role ? 0.5 : 1,
-                cursor: submitting || newRole === editingUser.role ? 'not-allowed' : 'pointer',
-              }}
-            >
-              {submitting ? <Loader2 size={16} className="animate-spin" /> : 'Simpan'}
-            </button>
+            {(newRole === 'staf' || newRole === 'tlm') && (
+              <div style={{ marginBottom: '0.875rem' }}>
+                <p style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <MapPin size={12} /> Wilayah Tanggung Jawab (untuk email alert)
+                </p>
+                {editingUser.assigned_region_name && newRegion === (editingUser.assigned_region_id ?? null) && (
+                  <p style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                    Saat ini: <b>{editingUser.assigned_region_name}</b>
+                  </p>
+                )}
+                <RegionFilter value={newRegion} onChange={setNewRegion} />
+                <p style={{ fontSize: '0.625rem', color: 'var(--text-muted)', marginTop: '0.35rem', lineHeight: 1.4 }}>
+                  Staf menerima email saat ada laporan baru di wilayah ini (termasuk kecamatan di bawahnya). Kosongkan = tidak dibatasi area.
+                </p>
+              </div>
+            )}
+            {(() => {
+              const unchanged = newRole === editingUser.role && newRegion === (editingUser.assigned_region_id ?? null);
+              return (
+                <button
+                  onClick={handleRoleChange}
+                  disabled={submitting || unchanged}
+                  className="btn btn-primary"
+                  style={{
+                    width: '100%', padding: '12px',
+                    opacity: submitting || unchanged ? 0.5 : 1,
+                    cursor: submitting || unchanged ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  {submitting ? <Loader2 size={16} className="animate-spin" /> : 'Simpan'}
+                </button>
+              );
+            })()}
           </div>
         </>
       )}
