@@ -14,7 +14,18 @@ import MapFilterControl from './MapFilterControl';
 import TimelapseSlider from './TimelapseSlider';
 import type { MapReport, SeverityLevel, AreaStatusLevel } from '@/types/database';
 import { SEVERITY_LABELS, AREA_STATUS_COLORS, AREA_STATUS_LABELS } from '@/types/database';
-import { Navigation, AlertTriangle, Droplets, Loader2, Info, MapPin, History } from 'lucide-react';
+import { Navigation, AlertTriangle, Droplets, Loader2, Info, MapPin, History, RefreshCw } from 'lucide-react';
+
+/** Hard refresh: bersihkan cache service worker (PWA) lalu muat ulang dari jaringan. */
+async function hardRefresh() {
+  try {
+    if (typeof caches !== 'undefined') {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+    }
+  } catch { /* abaikan */ }
+  window.location.reload();
+}
 import VoteButtons from '@/components/reports/VoteButtons';
 import Link from 'next/link';
 import LocationSearch from './LocationSearch';
@@ -594,10 +605,26 @@ export default function FloodMap() {
         <Info size={20} color={showLegend ? 'white' : 'var(--text-secondary)'} />
       </button>
 
+      {/* Tombol Refresh — hard refresh (clear cache + reload) */}
+      <button
+        onClick={hardRefresh}
+        title="Muat ulang (hard refresh)"
+        style={{
+          position: 'absolute', bottom: '276px', right: '16px', zIndex: 1000,
+          width: '44px', height: '44px', borderRadius: '50%',
+          background: 'var(--bg-card)', border: '1px solid var(--border-primary)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', boxShadow: 'var(--shadow-md)',
+          transition: 'all var(--transition-fast)',
+        }}
+      >
+        <RefreshCw size={19} color="var(--text-secondary)" />
+      </button>
+
       {/* Legend Popup — appears above info button when open */}
       {showLegend && (
         <div className="glass" style={{
-          position: 'absolute', bottom: '276px', right: '16px', zIndex: 1000,
+          position: 'absolute', bottom: '332px', right: '16px', zIndex: 1000,
           padding: '0.875rem', borderRadius: 'var(--radius-md)',
           display: 'flex', flexDirection: 'column', gap: '0.5rem',
           minWidth: '150px',
