@@ -4,9 +4,10 @@
  * FR-055 (PBI-30) — PWA Installable + Service Worker
  *
  * 1. Mendaftarkan service worker (/sw.js) untuk cache app-shell & offline.
- * 2. Menangkap event beforeinstallprompt → menampilkan banner "Pasang Aplikasi"
- *    (Add to Home Screen). Disembunyikan bila sudah ter-install (standalone) atau
- *    pengguna menutup banner. Dipasang global di AppShell.
+ * 2. Menangkap event beforeinstallprompt → menampilkan kartu "Pasang Aplikasi"
+ *    di pojok kanan bawah (tidak menabrak navbar/peta). Tombol tutup MENGECILKAN
+ *    kartu menjadi logo (FAB) di pojok; klik logo untuk membuka lagi.
+ *    Disembunyikan bila sudah ter-install (standalone). Dipasang global di AppShell.
  */
 
 import { useEffect, useState } from 'react';
@@ -17,9 +18,18 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
+type View = 'hidden' | 'banner' | 'mini';
+
+const ANCHOR: React.CSSProperties = {
+  position: 'fixed',
+  bottom: 'calc(96px + env(safe-area-inset-bottom, 0px))',
+  right: '16px',
+  zIndex: 2300,
+};
+
 export default function InstallPrompt() {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
-  const [show, setShow] = useState(false);
+  const [view, setView] = useState<View>('hidden');
 
   // Daftarkan service worker untuk PWA (offline shell).
   useEffect(() => {
@@ -29,19 +39,19 @@ export default function InstallPrompt() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    // Sudah ter-install (mode standalone)? jangan tampilkan.
     const standalone = window.matchMedia('(display-mode: standalone)').matches
       || (window.navigator as unknown as { standalone?: boolean }).standalone === true;
     if (standalone) return;
-    if (sessionStorage.getItem('fs-install-dismissed') === '1') return;
+    // Mulai dari kondisi mini bila pengguna sudah pernah minimize di sesi ini.
+    const start: View = sessionStorage.getItem('fs-install-mini') === '1' ? 'mini' : 'banner';
 
     const onPrompt = (e: Event) => {
       e.preventDefault();
       setDeferred(e as BeforeInstallPromptEvent);
-      setShow(true);
+      setView(start);
     };
     window.addEventListener('beforeinstallprompt', onPrompt);
-    window.addEventListener('appinstalled', () => setShow(false));
+    window.addEventListener('appinstalled', () => setView('hidden'));
     return () => window.removeEventListener('beforeinstallprompt', onPrompt);
   }, []);
 
@@ -49,24 +59,53 @@ export default function InstallPrompt() {
     if (!deferred) return;
     await deferred.prompt();
     await deferred.userChoice;
-    setShow(false);
+    setView('hidden');
     setDeferred(null);
   };
 
-  const dismiss = () => {
-    setShow(false);
-    try { sessionStorage.setItem('fs-install-dismissed', '1'); } catch { /* noop */ }
+  const minimize = () => {
+    setView('mini');
+    try { sessionStorage.setItem('fs-install-mini', '1'); } catch { /* noop */ }
   };
 
-  if (!show) return null;
+  if (view === 'hidden') return null;
 
+  // Logo FAB (minimized)
+  if (view === 'mini') {
+    return (
+      <button
+        onClick={() => setView('banner')}
+        title="Pasang FloodSense"
+        aria-label="Pasang FloodSense"
+        className="glass"
+        style={{
+          ...ANCHOR,
+          width: '52px', height: '52px', borderRadius: '50%', padding: 0,
+          border: '1px solid var(--border-primary)', cursor: 'pointer',
+          boxShadow: 'var(--shadow-lg)', overflow: 'hidden',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/floodsense-logo.png" alt="FloodSense" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        <span style={{
+          position: 'absolute', top: '-2px', right: '-2px', width: '16px', height: '16px',
+          borderRadius: '50%', background: 'var(--primary-500)', border: '2px solid var(--bg-primary)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Download size={9} color="#fff" />
+        </span>
+      </button>
+    );
+  }
+
+  // Kartu banner (expanded)
   return (
     <div
       className="glass"
       style={{
-        position: 'fixed', bottom: 'calc(96px + env(safe-area-inset-bottom, 0px))',
-        left: '50%', transform: 'translateX(-50%)', zIndex: 2300,
-        width: 'min(420px, calc(100vw - 32px))', padding: '0.75rem 0.875rem',
+        ...ANCHOR,
+        width: 'min(320px, calc(100vw - 32px))', padding: '0.75rem 0.875rem',
         display: 'flex', alignItems: 'center', gap: '0.75rem',
         borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-primary)',
         boxShadow: 'var(--shadow-lg)',
@@ -80,10 +119,10 @@ export default function InstallPrompt() {
         <p style={{ fontSize: '0.8125rem', fontWeight: 700, margin: 0 }}>Pasang FloodSense</p>
         <p style={{ fontSize: '0.6875rem', color: 'var(--text-secondary)', margin: '1px 0 0' }}>Akses lebih cepat & bisa dibuka offline.</p>
       </div>
-      <button onClick={install} className="btn btn-primary" style={{ fontSize: '0.75rem', gap: '0.3rem', padding: '0.45rem 0.75rem', flexShrink: 0 }}>
+      <button onClick={install} className="btn btn-primary" style={{ fontSize: '0.75rem', gap: '0.3rem', padding: '0.45rem 0.7rem', flexShrink: 0 }}>
         <Download size={14} /> Pasang
       </button>
-      <button onClick={dismiss} aria-label="Tutup" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', flexShrink: 0, display: 'flex' }}>
+      <button onClick={minimize} aria-label="Kecilkan" title="Kecilkan" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', flexShrink: 0, display: 'flex' }}>
         <X size={15} color="var(--text-muted)" />
       </button>
     </div>
