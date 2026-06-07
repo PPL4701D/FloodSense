@@ -86,6 +86,15 @@ export default function RegionBoundaryEditor({
   const [pasteText, setPasteText] = useState('');
   const [center, setCenter] = useState<LatLng>(INDONESIA);
   const [zoom, setZoom] = useState(5);
+  const [mapReady, setMapReady] = useState(false);
+
+  // Tunda mount peta hingga modal & container benar-benar stabil → cegah tile kepotong
+  // (Leaflet menghitung ukuran salah bila di-init saat container belum final).
+  useEffect(() => {
+    if (loading) { setMapReady(false); return; }
+    const t = setTimeout(() => setMapReady(true), 250);
+    return () => clearTimeout(t);
+  }, [loading]);
 
   useEffect(() => {
     (async () => {
@@ -186,7 +195,7 @@ export default function RegionBoundaryEditor({
         </p>
 
         <div style={{ height: '360px', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-primary)', position: 'relative' }}>
-          {loading ? (
+          {!mapReady ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '0.4rem', fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
               <Loader2 size={16} className="animate-spin" /> Memuat…
             </div>
