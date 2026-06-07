@@ -47,13 +47,16 @@ function FitBounds({ points }: { points: LatLng[] }) {
   return null;
 }
 
-// Perbaiki ukuran peta yang dirender di dalam modal (tile tidak penuh tanpa ini).
+// Perbaiki ukuran peta yang dirender di dalam modal (tile kepotong tanpa ini).
+// ResizeObserver menangkap saat container mendapat ukuran final → invalidateSize.
 function InvalidateSize() {
   const map = useMap();
   useEffect(() => {
-    const t1 = setTimeout(() => map.invalidateSize(), 120);
-    const t2 = setTimeout(() => map.invalidateSize(), 400);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
+    const fix = () => map.invalidateSize({ animate: false });
+    const ro = new ResizeObserver(fix);
+    ro.observe(map.getContainer());
+    const timers = [50, 200, 500, 900].map((d) => window.setTimeout(fix, d));
+    return () => { ro.disconnect(); timers.forEach((t) => clearTimeout(t)); };
   }, [map]);
   return null;
 }
