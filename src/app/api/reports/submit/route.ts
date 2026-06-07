@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { sendEmail, buildNewReportEmail } from '@/lib/email/resend';
+import { resolveRegionId } from '@/lib/geo/resolveRegion';
 
 /**
  * FR-006 + FR-021: Report Submission with Spam/Duplicate Detection
@@ -96,6 +97,9 @@ export async function POST(req: NextRequest) {
     // --- Insert Report ---
     const reportStatus = isDuplicate ? 'flagged' : 'pending';
 
+    // FR-020: tentukan wilayah (provinsi/kab/kec) dari koordinat (reverse-geocode).
+    const region_id = await resolveRegionId(supabase, Number(lat), Number(lng));
+
     const { data: report, error: reportError } = await supabase
       .from('reports')
       .insert({
@@ -107,6 +111,7 @@ export async function POST(req: NextRequest) {
         water_height_cm: water_height_cm || null,
         is_surge_receding: is_surge_receding || false,
         status: reportStatus,
+        region_id,
       })
       .select('id')
       .single();

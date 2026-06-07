@@ -23,7 +23,7 @@ import { StatusDonut, SeverityBars, type Slice } from '@/components/dashboard/Di
 import RegionComparison, { type RegionDatum } from '@/components/dashboard/RegionComparison';
 import ExportButtons from '@/components/dashboard/ExportButtons';
 import type { ExportRow } from '@/lib/utils/exportData';
-import { LayoutDashboard, FileText, CheckCircle2, Clock, AlertTriangle, TrendingUp, PieChart, BarChart3, Radio } from 'lucide-react';
+import { LayoutDashboard, FileText, CheckCircle2, Clock, AlertTriangle, TrendingUp, PieChart, BarChart3, Radio, Inbox } from 'lucide-react';
 import type { ReportStatus, SeverityLevel } from '@/types/database';
 
 interface Row {
@@ -66,6 +66,7 @@ export default function DashboardPage() {
   const [rows, setRows] = useState<Row[]>([]);
   const [regionNames, setRegionNames] = useState<Record<string, string>>({});
   const [reporterNames, setReporterNames] = useState<Record<string, string>>({});
+  const [descSet, setDescSet] = useState<Set<string> | null>(null);
   const [loading, setLoading] = useState(true);
   const hydrated = useRef(false);
 
@@ -91,15 +92,32 @@ export default function DashboardPage() {
     window.history.replaceState(null, '', `?${p.toString()}`);
   }, [regionId, range]);
 
-  // Peta id wilayah → nama (untuk grafik perbandingan & ekspor)
+  // FR-054: wilayah turunan untuk filter hierarkis (provinsi → kab → kec).
   useEffect(() => {
+    if (!regionId) { setDescSet(null); return; }
+    let cancelled = false;
     (async () => {
-      const { data } = await supabase.from('regions').select('id, name');
+      const { data } = await supabase.rpc('region_descendant_ids', { p_region: regionId });
+      if (cancelled) return;
+      setDescSet(new Set(((data as Array<{ id: string }> | null) ?? []).map((r) => r.id)));
+    })();
+    return () => { cancelled = true; };
+  }, [regionId, supabase]);
+
+  // Peta id wilayah → nama — hanya untuk id yang muncul di laporan + wilayah terpilih
+  // (hemat: tidak memuat ribuan wilayah sekaligus).
+  useEffect(() => {
+    const ids = new Set<string>();
+    rows.forEach((r) => { if (r.region_id) ids.add(r.region_id); });
+    if (regionId) ids.add(regionId);
+    if (ids.size === 0) { setRegionNames({}); return; }
+    (async () => {
+      const { data } = await supabase.from('regions').select('id, name').in('id', Array.from(ids));
       const map: Record<string, string> = {};
       (data as Array<{ id: string; name: string }> | null)?.forEach((r) => { map[r.id] = r.name; });
       setRegionNames(map);
     })();
-  }, [supabase]);
+  }, [rows, regionId, supabase]);
 
   // Peta id pelapor → nama (untuk kolom Pelapor pada ekspor)
   useEffect(() => {
@@ -113,17 +131,18 @@ export default function DashboardPage() {
 
   const fetchSummary = useCallback(async () => {
     setLoading(true);
-    let q = supabase
+    const { data } = await supabase
       .from('reports')
       .select('status, severity, created_at, region_id, reporter_id, address, water_height_cm')
       .gte('created_at', new Date(range.from + 'T00:00:00').toISOString())
       .lte('created_at', new Date(range.to + 'T23:59:59').toISOString())
       .order('created_at', { ascending: true });
-    if (regionId) q = q.eq('region_id', regionId);
-    const { data } = await q;
-    setRows((data as Row[] | null) ?? []);
+    let result = (data as Row[] | null) ?? [];
+    // Filter hierarkis: tampilkan laporan pada wilayah terpilih + seluruh turunannya.
+    if (regionId && descSet) result = result.filter((r) => r.region_id && descSet.has(r.region_id));
+    setRows(result);
     setLoading(false);
-  }, [supabase, regionId, range.from, range.to]);
+  }, [supabase, regionId, descSet, range.from, range.to]);
 
   useEffect(() => { fetchSummary(); }, [fetchSummary]);
 
@@ -265,9 +284,15 @@ export default function DashboardPage() {
           </div>
 
           {total === 0 ? (
-            <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8125rem', marginTop: '1.5rem' }}>
-              Tidak ada laporan pada filter ini.
-            </p>
+            <div className="card" style={{ marginTop: '1rem', padding: '3rem 1.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', minHeight: 'max(360px, calc(100vh - 360px))', justifyContent: 'center' }}>
+              <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--bg-elevated)', border: '1px solid var(--border-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.5rem' }}>
+                <Inbox size={30} color="var(--text-muted)" />
+              </div>
+              <p style={{ fontSize: '1rem', fontWeight: 700 }}>Belum Ada Laporan</p>
+              <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', maxWidth: '320px', lineHeight: 1.5 }}>
+                Tidak ada laporan banjir pada wilayah & rentang waktu yang dipilih. Coba ubah wilayah atau perlebar rentang waktunya.
+              </p>
+            </div>
           ) : (
             <div className="dash-charts">
               {/* Kolom kiri: tren harian + perbandingan wilayah */}
