@@ -78,12 +78,25 @@ export async function GET(req: NextRequest) {
       actor_name: nameMap.get(l.actor_id) ?? 'Tidak diketahui',
     }));
 
+    // Daftar actor unik (untuk filter "admin pelaku") — hanya saat halaman pertama.
+    let actors: { id: string; name: string }[] | undefined;
+    if (page === 0) {
+      const { data: allActorRows } = await admin.from('audit_logs').select('actor_id');
+      const uniqueActorIds = [...new Set((allActorRows ?? []).map((r) => r.actor_id).filter(Boolean))];
+      const { data: actorProfiles } = uniqueActorIds.length
+        ? await admin.from('profiles').select('id, full_name').in('id', uniqueActorIds)
+        : { data: [] as { id: string; full_name: string }[] };
+      actors = (actorProfiles ?? []).map((p) => ({ id: p.id, name: p.full_name }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+    }
+
     return NextResponse.json({
       logs: enriched,
       total: count ?? 0,
       page,
       pageSize: PAGE_SIZE,
       hasMore: (count ?? 0) > fromIdx + PAGE_SIZE,
+      ...(actors ? { actors } : {}),
     });
   } catch (err) {
     console.error('GET /api/admin/audit-logs error:', err);
