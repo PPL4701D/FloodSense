@@ -3,8 +3,9 @@
 /**
  * FR-028 — Perbandingan Antar Wilayah
  *
- * Horizontal bar chart membandingkan jumlah laporan per wilayah (top-N).
- * Mengonsumsi agregasi {name, total} dari dashboard.
+ * Horizontal bar chart membandingkan wilayah (top-N) berdasarkan metrik yang
+ * dipilih admin (jumlah laporan, rata-rata ketinggian, % terverifikasi, dll).
+ * Mengonsumsi agregasi {name, value} + label/unit dari dashboard.
  */
 
 import {
@@ -13,12 +14,20 @@ import {
 
 export interface RegionDatum {
   name: string;
-  total: number;
+  value: number;
 }
 
 const PALETTE = ['#3b82f6', '#0891b2', '#8b5cf6', '#22c55e', '#eab308', '#ef4444', '#f97316'];
 
-export default function RegionComparison({ data }: { data: RegionDatum[] }) {
+export default function RegionComparison({
+  data,
+  valueLabel = 'Laporan',
+  unit = '',
+}: {
+  data: RegionDatum[];
+  valueLabel?: string;
+  unit?: string;
+}) {
   if (data.length === 0) {
     return (
       <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', textAlign: 'center', padding: '2rem 0' }}>
@@ -42,8 +51,9 @@ export default function RegionComparison({ data }: { data: RegionDatum[] }) {
           <Tooltip
             contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-primary)', borderRadius: 8, fontSize: 12, color: 'var(--text-primary)' }}
             cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+            formatter={(v: number | string) => [`${v}${unit}`, valueLabel]}
           />
-          <Bar dataKey="total" name="Laporan" radius={[0, 4, 4, 0]}>
+          <Bar dataKey="value" name={valueLabel} radius={[0, 4, 4, 0]}>
             {data.map((d, i) => <Cell key={d.name} fill={PALETTE[i % PALETTE.length]} />)}
           </Bar>
         </BarChart>
