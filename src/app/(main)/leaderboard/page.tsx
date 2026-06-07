@@ -129,7 +129,7 @@ export default function LeaderboardPage() {
   const selfInTop = myRank !== null && myRank <= list.length && list.some((r) => r.id === user?.id);
 
   return (
-    <div style={{ padding: '1rem', maxWidth: '640px', margin: '0 auto', paddingBottom: '88px' }}>
+    <div style={{ padding: '1rem', maxWidth: '640px', margin: '0 auto', paddingBottom: '88px', height: '100%', overflowY: 'auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
         <Trophy size={20} color="#f59e0b" />
         <h1 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Papan Peringkat</h1>
