@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import WaveLoader from '@/components/ui/WaveLoader';
 import {
   Users, ScrollText, Shield, Activity, LayoutDashboard,
-  ChevronRight, AlertTriangle, CheckCircle2, FileText,
+  ChevronRight, ChevronLeft, AlertTriangle, CheckCircle2, FileText,
   TrendingUp, Crown, MapPinned,
 } from 'lucide-react';
 
@@ -120,6 +120,9 @@ export default function AdminPage() {
         background: 'linear-gradient(135deg, rgba(59,130,246,0.08) 0%, rgba(139,92,246,0.08) 100%)',
         borderBottom: '1px solid var(--border-primary)',
       }}>
+        <Link href="/dashboard" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.875rem', textDecoration: 'none' }}>
+          <ChevronLeft size={16} /> Kembali ke Dashboard
+        </Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
           <div style={{
             width: '40px', height: '40px', borderRadius: 'var(--radius-md)',
