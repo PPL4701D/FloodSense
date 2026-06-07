@@ -95,8 +95,8 @@ export default function NotificationsPage() {
   return (
     <>
       <style>{`
-        .notif-page { padding: 1rem; max-width: 800px; margin: 0 auto; }
-        @media (min-width: 768px) { .notif-page { padding: 2rem; } }
+        .notif-page { padding: 1rem; max-width: 800px; margin: 0 auto; height: 100%; overflow-y: auto; padding-bottom: 88px; }
+        @media (min-width: 768px) { .notif-page { padding: 2rem; padding-bottom: 88px; } }
       `}</style>
       <div className="notif-page">
         <div style={{
