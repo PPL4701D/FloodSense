@@ -7,7 +7,7 @@ import { registerSchema, type RegisterFormData } from '@/lib/validators/auth';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Eye, EyeOff, Mail, Lock, User, Droplets, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -81,14 +81,8 @@ export default function RegisterPage() {
       <div className="animate-fade-in" style={{ width: '100%', maxWidth: '420px' }}>
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: '64px', height: '64px', borderRadius: 'var(--radius-lg)',
-            background: 'linear-gradient(135deg, var(--primary-600), #0891b2)',
-            marginBottom: '1rem', boxShadow: '0 0 30px rgba(59,130,246,0.3)'
-          }}>
-            <Droplets size={32} color="white" />
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/floodsense-logo.png" alt="FloodSense" width={64} height={64} style={{ objectFit: 'contain', marginBottom: '1rem' }} />
           <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.5rem' }}>
             <span className="text-gradient">Buat Akun</span>
           </h1>
