@@ -51,7 +51,7 @@ export default function RegionComparison({
           <Tooltip
             contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-primary)', borderRadius: 8, fontSize: 12, color: 'var(--text-primary)' }}
             cursor={{ fill: 'rgba(255,255,255,0.04)' }}
-            formatter={(v: number | string) => [`${v}${unit}`, valueLabel]}
+            formatter={(v) => [`${v}${unit}`, valueLabel]}
           />
           <Bar dataKey="value" name={valueLabel} radius={[0, 4, 4, 0]}>
             {data.map((d, i) => <Cell key={d.name} fill={PALETTE[i % PALETTE.length]} />)}
