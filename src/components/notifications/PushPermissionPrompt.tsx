@@ -48,7 +48,7 @@ export default function PushPermissionPrompt() {
         setBusy(false);
         return;
       }
-      const reg = await navigator.serviceWorker.register('/sw-push.js');
+      const reg = await navigator.serviceWorker.register('/sw.js');
       await navigator.serviceWorker.ready;
       const vapid = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
       if (!vapid) { setMsg('VAPID key belum dikonfigurasi.'); setBusy(false); return; }
