@@ -23,7 +23,7 @@ import { StatusDonut, SeverityBars, type Slice } from '@/components/dashboard/Di
 import RegionComparison, { type RegionDatum } from '@/components/dashboard/RegionComparison';
 import ExportButtons from '@/components/dashboard/ExportButtons';
 import type { ExportRow } from '@/lib/utils/exportData';
-import { LayoutDashboard, FileText, CheckCircle2, Clock, AlertTriangle, TrendingUp, PieChart, BarChart3, Radio, Inbox } from 'lucide-react';
+import { LayoutDashboard, FileText, CheckCircle2, Clock, AlertTriangle, TrendingUp, PieChart, BarChart3, Radio, Inbox, Shield } from 'lucide-react';
 import type { ReportStatus, SeverityLevel } from '@/types/database';
 
 interface Row {
@@ -260,6 +260,11 @@ export default function DashboardPage() {
           <h1 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Dashboard</h1>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          {role === 'admin' && (
+            <Link href="/admin" className="btn btn-ghost" style={{ fontSize: '0.75rem', gap: '0.35rem', padding: '0.45rem 0.75rem' }}>
+              <Shield size={14} color="#f59e0b" /> Admin Panel
+            </Link>
+          )}
           {(role === 'tlm' || role === 'admin') && (
             <Link href="/broadcast" className="btn btn-ghost" style={{ fontSize: '0.75rem', gap: '0.35rem', padding: '0.45rem 0.75rem' }}>
               <Radio size={14} color="var(--primary-400)" /> Broadcast
