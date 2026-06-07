@@ -14,9 +14,9 @@ import { Play, Pause, RotateCcw, X, History, Loader2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useMapStore } from '@/stores/mapStore';
 import { SEVERITY_WEIGHTS } from '@/types/database';
-import type { HeatmapPoint, SeverityLevel } from '@/types/database';
+import type { HeatmapPoint, MapReport } from '@/types/database';
 
-interface Frame { lat: number; lng: number; weight: number; t: number }
+interface Frame extends MapReport { t: number }
 
 const WINDOWS = [
   { key: '24h', label: '24 Jam', ms: 24 * 60 * 60 * 1000 },
@@ -27,7 +27,7 @@ const SPEEDS = [1, 2, 4] as const;
 
 export default function TimelapseSlider({ onClose }: { onClose: () => void }) {
   const supabase = createClient();
-  const { setTimelapseActive, setTimelapsePoints } = useMapStore();
+  const { setTimelapseActive, setTimelapsePoints, setTimelapseReports } = useMapStore();
 
   const [windowKey, setWindowKey] = useState<'24h' | '7d'>('7d');
   const [frames, setFrames] = useState<Frame[]>([]);
@@ -48,8 +48,9 @@ export default function TimelapseSlider({ onClose }: { onClose: () => void }) {
     return () => {
       setTimelapseActive(false);
       setTimelapsePoints([]);
+      setTimelapseReports([]);
     };
-  }, [setTimelapseActive, setTimelapsePoints]);
+  }, [setTimelapseActive, setTimelapsePoints, setTimelapseReports]);
 
   // Ambil data saat window berubah.
   useEffect(() => {
@@ -61,10 +62,11 @@ export default function TimelapseSlider({ onClose }: { onClose: () => void }) {
       const since = new Date(endMs.current - win.ms).toISOString();
       const { data } = await supabase.rpc('get_map_reports', { p_since: since, p_severity: null, p_status: null });
       if (cancelled) return;
-      const rows = (data as Array<{ lat: number; lng: number; severity: SeverityLevel; created_at: string }> | null) ?? [];
+      const rows = (data as MapReport[] | null) ?? [];
       const fr: Frame[] = rows
         .filter((r) => r.lat !== 0 && r.lng !== 0)
-        .map((r) => ({ lat: r.lat, lng: r.lng, weight: SEVERITY_WEIGHTS[r.severity], t: new Date(r.created_at).getTime() }));
+        .map((r) => ({ ...r, t: new Date(r.created_at).getTime() }))
+        .sort((a, b) => a.t - b.t);
       setFrames(fr);
       setStep(STEPS);
       setLoading(false);
@@ -72,13 +74,12 @@ export default function TimelapseSlider({ onClose }: { onClose: () => void }) {
     return () => { cancelled = true; };
   }, [supabase, win.ms]);
 
-  // Hitung & kirim titik heatmap untuk step saat ini.
+  // Hitung & kirim titik heatmap + marker untuk step saat ini.
   useEffect(() => {
-    const pts: HeatmapPoint[] = frames
-      .filter((f) => f.t <= currentTime)
-      .map((f) => [f.lat, f.lng, f.weight] as HeatmapPoint);
-    setTimelapsePoints(pts);
-  }, [frames, currentTime, setTimelapsePoints]);
+    const visible = frames.filter((f) => f.t <= currentTime);
+    setTimelapsePoints(visible.map((f) => [f.lat, f.lng, SEVERITY_WEIGHTS[f.severity]] as HeatmapPoint));
+    setTimelapseReports(visible);
+  }, [frames, currentTime, setTimelapsePoints, setTimelapseReports]);
 
   // Animasi play.
   useEffect(() => {
