@@ -36,12 +36,11 @@ export default function RegionComparison({
     );
   }
 
-  const height = Math.max(160, data.length * 38);
-
+  // Tinggi tetap (konsisten dgn TrendChart/DistributionChart) — tidak ikut jumlah data.
   return (
-    <div style={{ width: '100%', height }}>
+    <div style={{ width: '100%', height: 260 }}>
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 4 }}>
+        <BarChart data={data} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 4 }} barCategoryGap="20%">
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border-primary)" horizontal={false} />
           <XAxis type="number" tick={{ fontSize: 10, fill: 'var(--text-muted)' }} tickLine={false} axisLine={false} allowDecimals={false} />
           <YAxis
@@ -53,7 +52,7 @@ export default function RegionComparison({
             cursor={{ fill: 'rgba(255,255,255,0.04)' }}
             formatter={(v) => [`${v}${unit}`, valueLabel]}
           />
-          <Bar dataKey="value" name={valueLabel} radius={[0, 4, 4, 0]}>
+          <Bar dataKey="value" name={valueLabel} radius={[0, 4, 4, 0]} maxBarSize={30}>
             {data.map((d, i) => <Cell key={d.name} fill={PALETTE[i % PALETTE.length]} />)}
           </Bar>
         </BarChart>
