@@ -1,23 +1,18 @@
 'use client';
 
 /**
- * FR-023 — CascadingRegionFilter (Provinsi → Kabupaten → Kecamatan)
+ * FR-023 — CascadingRegionFilter (Provinsi → Kabupaten/Kota → Kecamatan)
  *
- * Dropdown bertingkat berdasarkan tabel regions (level + parent_id).
+ * Lazy-load per level: hanya provinsi yang diambil saat mount; kabupaten & kecamatan
+ * diambil on-demand saat induknya dipilih (menghindari memuat ribuan baris sekaligus).
  * onChange mengembalikan region_id paling spesifik yang dipilih (atau null).
- * Dipakai ulang oleh dashboard (PBI-11/12/13) & daftar laporan (PBI-22).
+ * Dipakai oleh dashboard (PBI-11/12/13) & daftar laporan (PBI-22).
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import type { RegionLevel } from '@/types/database';
 
-interface RegionRow {
-  id: string;
-  name: string;
-  level: RegionLevel;
-  parent_id: string | null;
-}
+interface RegionRow { id: string; name: string }
 
 const selectStyle: React.CSSProperties = {
   width: '100%', padding: '0.5rem', fontSize: '0.8125rem',
@@ -34,57 +29,61 @@ export default function RegionFilter({
   onChange: (regionId: string | null) => void;
 }) {
   const supabase = createClient();
-  const [regions, setRegions] = useState<RegionRow[]>([]);
+  const [provinsi, setProvinsi] = useState<RegionRow[]>([]);
+  const [kabupaten, setKabupaten] = useState<RegionRow[]>([]);
+  const [kecamatan, setKecamatan] = useState<RegionRow[]>([]);
   const [prov, setProv] = useState<string>('');
   const [kab, setKab] = useState<string>('');
   const [kec, setKec] = useState<string>('');
 
+  // Hanya provinsi yang dimuat di awal.
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from('regions').select('id, name, level, parent_id').order('name');
-      setRegions((data as RegionRow[] | null) ?? []);
+      const { data } = await supabase.from('regions').select('id, name').eq('level', 'provinsi').order('name');
+      setProvinsi((data as RegionRow[] | null) ?? []);
     })();
   }, [supabase]);
 
-  // Reset internal state bila value di-clear dari luar
+  // Reset bila value di-clear dari luar.
   useEffect(() => {
-    if (value === null) { setProv(''); setKab(''); setKec(''); }
+    if (value === null) { setProv(''); setKab(''); setKec(''); setKabupaten([]); setKecamatan([]); }
   }, [value]);
 
-  const provinsi = useMemo(() => regions.filter((r) => r.level === 'provinsi'), [regions]);
-  const kabupaten = useMemo(() => regions.filter((r) => r.level === 'kabupaten' && r.parent_id === prov), [regions, prov]);
-  const kecamatan = useMemo(() => regions.filter((r) => r.level === 'kecamatan' && r.parent_id === kab), [regions, kab]);
+  const loadChildren = useCallback(async (parentId: string, level: 'kabupaten' | 'kecamatan') => {
+    const { data } = await supabase.from('regions').select('id, name').eq('parent_id', parentId).eq('level', level).order('name');
+    return (data as RegionRow[] | null) ?? [];
+  }, [supabase]);
 
   const emit = (p: string, k: string, c: string) => onChange(c || k || p || null);
 
+  const onProv = async (v: string) => {
+    setProv(v); setKab(''); setKec(''); setKabupaten([]); setKecamatan([]);
+    emit(v, '', '');
+    if (v) setKabupaten(await loadChildren(v, 'kabupaten'));
+  };
+  const onKab = async (v: string) => {
+    setKab(v); setKec(''); setKecamatan([]);
+    emit(prov, v, '');
+    if (v) setKecamatan(await loadChildren(v, 'kecamatan'));
+  };
+  const onKec = (v: string) => { setKec(v); emit(prov, kab, v); };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-      <select
-        style={selectStyle}
-        value={prov}
-        onChange={(e) => { const v = e.target.value; setProv(v); setKab(''); setKec(''); emit(v, '', ''); }}
-      >
+      <select style={selectStyle} value={prov} onChange={(e) => onProv(e.target.value)}>
         <option value="">Semua Provinsi</option>
         {provinsi.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
       </select>
 
       {prov && kabupaten.length > 0 && (
-        <select
-          style={selectStyle}
-          value={kab}
-          onChange={(e) => { const v = e.target.value; setKab(v); setKec(''); emit(prov, v, ''); }}
-        >
+        <select style={selectStyle} value={kab} onChange={(e) => onKab(e.target.value)}>
           <option value="">Semua Kabupaten/Kota</option>
           {kabupaten.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
         </select>
       )}
 
       {kab && kecamatan.length > 0 && (
-        <select
-          style={selectStyle}
-          value={kec}
-          onChange={(e) => { const v = e.target.value; setKec(v); emit(prov, kab, v); }}
-        >
+        <select style={selectStyle} value={kec} onChange={(e) => onKec(e.target.value)}>
           <option value="">Semua Kecamatan</option>
           {kecamatan.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
         </select>
