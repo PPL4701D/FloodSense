@@ -56,6 +56,16 @@ function daysAgoISO(days: number): string {
   return new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
 }
 
+// FR-028 — mode perbandingan wilayah yang bisa dipilih admin.
+const COMPARE_MODES = {
+  total:        { label: 'Jumlah Laporan',       unit: '',    compute: (rs: Row[]) => rs.length },
+  severe:       { label: 'Keparahan Berat+',     unit: '',    compute: (rs: Row[]) => rs.filter((r) => r.severity === 'berat' || r.severity === 'sangat_berat').length },
+  active:       { label: 'Laporan Aktif',        unit: '',    compute: (rs: Row[]) => rs.filter((r) => ['pending', 'flagged', 'dalam_peninjauan'].includes(r.status)).length },
+  avg_water:    { label: 'Rata-rata Ketinggian', unit: ' cm', compute: (rs: Row[]) => { const v = rs.map((r) => r.water_height_cm).filter((x): x is number => x != null); return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length) : 0; } },
+  pct_verified: { label: '% Terverifikasi',      unit: '%',   compute: (rs: Row[]) => rs.length ? Math.round((rs.filter((r) => r.status === 'verified').length / rs.length) * 100) : 0 },
+} as const;
+type CompareMode = keyof typeof COMPARE_MODES;
+
 export default function DashboardPage() {
   const router = useRouter();
   const { role, loading: authLoading } = useAuth();
@@ -67,6 +77,7 @@ export default function DashboardPage() {
   const [regionNames, setRegionNames] = useState<Record<string, string>>({});
   const [reporterNames, setReporterNames] = useState<Record<string, string>>({});
   const [descSet, setDescSet] = useState<Set<string> | null>(null);
+  const [compareMode, setCompareMode] = useState<CompareMode>('total');
   const [loading, setLoading] = useState(true);
   const hydrated = useRef(false);
 
@@ -183,18 +194,22 @@ export default function DashboardPage() {
       name: m.label, color: m.color, value: rows.filter((r) => r.severity === key).length,
     })), [rows]);
 
-  // FR-028 — perbandingan wilayah (top 7)
+  // FR-028 — perbandingan wilayah (top 7) berdasarkan mode terpilih
   const regionData = useMemo<RegionDatum[]>(() => {
-    const counts = new Map<string, number>();
+    const groups = new Map<string, Row[]>();
     rows.forEach((r) => {
       if (!r.region_id) return;
-      counts.set(r.region_id, (counts.get(r.region_id) ?? 0) + 1);
+      const arr = groups.get(r.region_id) ?? [];
+      arr.push(r);
+      groups.set(r.region_id, arr);
     });
-    return Array.from(counts.entries())
-      .map(([id, n]) => ({ name: regionNames[id] ?? 'Tanpa wilayah', total: n }))
-      .sort((a, b) => b.total - a.total)
+    const compute = COMPARE_MODES[compareMode].compute;
+    return Array.from(groups.entries())
+      .map(([id, rs]) => ({ name: regionNames[id] ?? 'Tanpa wilayah', value: compute(rs) }))
+      .filter((d) => d.value > 0)
+      .sort((a, b) => b.value - a.value)
       .slice(0, 7);
-  }, [rows, regionNames]);
+  }, [rows, regionNames, compareMode]);
 
   // FR-027 — baris ekspor (detail: pelapor, ketinggian, wilayah, alamat)
   const exportRows = useMemo<ExportRow[]>(() =>
@@ -305,11 +320,25 @@ export default function DashboardPage() {
                   <TrendChart data={trend} />
                 </div>
                 <div className="card" style={{ padding: '1rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
                     <BarChart3 size={16} color="var(--primary-400)" />
                     <h2 style={{ fontSize: '0.875rem', fontWeight: 700 }}>Perbandingan Antar Wilayah</h2>
+                    <select
+                      value={compareMode}
+                      onChange={(e) => setCompareMode(e.target.value as CompareMode)}
+                      title="Mode perbandingan"
+                      style={{
+                        marginLeft: 'auto', padding: '0.3rem 0.5rem', fontSize: '0.6875rem', cursor: 'pointer',
+                        background: 'var(--bg-elevated)', color: 'var(--text-primary)',
+                        border: '1px solid var(--border-primary)', borderRadius: 'var(--radius-sm)',
+                      }}
+                    >
+                      {(Object.keys(COMPARE_MODES) as CompareMode[]).map((m) => (
+                        <option key={m} value={m}>{COMPARE_MODES[m].label}</option>
+                      ))}
+                    </select>
                   </div>
-                  <RegionComparison data={regionData} />
+                  <RegionComparison data={regionData} valueLabel={COMPARE_MODES[compareMode].label} unit={COMPARE_MODES[compareMode].unit} />
                 </div>
               </div>
 
