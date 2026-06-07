@@ -16,6 +16,7 @@ import { SEVERITY_LABELS } from '@/types/database';
 import type { SeverityLevel, ReportStatus } from '@/types/database';
 import { Droplets, MapPin, Clock, ChevronRight, Search, Loader2, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
+import RegionFilter from '@/components/dashboard/RegionFilter';
 
 interface ReportListItem {
   id: string;
@@ -28,10 +29,6 @@ interface ReportListItem {
   credibility_score: number;
 }
 
-interface RegionOption {
-  id: string;
-  name: string;
-}
 
 type SortKey = 'terbaru' | 'kredibilitas';
 
@@ -58,7 +55,7 @@ export default function ReportsPage() {
   const supabase = createClient();
 
   const [reports, setReports] = useState<ReportListItem[]>([]);
-  const [regions, setRegions] = useState<RegionOption[]>([]);
+  const [descIds, setDescIds] = useState<string[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -90,13 +87,17 @@ export default function ReportsPage() {
     hydrated.current = true;
   }, []);
 
-  // --- Load region options ---
+  // --- Wilayah turunan untuk filter hierarkis (provinsi → kab/kota → kecamatan) ---
   useEffect(() => {
+    if (regionId === 'all') { setDescIds(null); return; }
+    let cancelled = false;
     (async () => {
-      const { data } = await supabase.from('regions').select('id, name').order('name');
-      setRegions((data as RegionOption[] | null) ?? []);
+      const { data } = await supabase.rpc('region_descendant_ids', { p_region: regionId });
+      if (cancelled) return;
+      setDescIds(((data as Array<{ id: string }> | null) ?? []).map((r) => r.id));
     })();
-  }, [supabase]);
+    return () => { cancelled = true; };
+  }, [regionId, supabase]);
 
   // --- Debounce search ---
   useEffect(() => {
@@ -127,7 +128,7 @@ export default function ReportsPage() {
 
       if (severity !== 'all') q = q.eq('severity', severity);
       if (status !== 'all') q = q.eq('status', status);
-      if (regionId !== 'all') q = q.eq('region_id', regionId);
+      if (regionId !== 'all' && descIds) q = q.in('region_id', descIds);
       if (dateFrom) q = q.gte('created_at', new Date(dateFrom + 'T00:00:00').toISOString());
       if (dateTo) q = q.lte('created_at', new Date(dateTo + 'T23:59:59').toISOString());
       if (debouncedSearch) {
@@ -142,7 +143,7 @@ export default function ReportsPage() {
 
       return q.range(from, to);
     },
-    [supabase, severity, status, regionId, dateFrom, dateTo, debouncedSearch, sort]
+    [supabase, severity, status, regionId, descIds, dateFrom, dateTo, debouncedSearch, sort]
   );
 
   // --- Fetch first page when filters change ---
@@ -244,10 +245,7 @@ export default function ReportsPage() {
               <option key={s} value={s}>{STATUS_LABELS[s]}</option>
             ))}
           </select>
-          <select className="input" style={{ ...selectStyle, width: '100%' }} value={regionId} onChange={(e) => setRegionId(e.target.value)}>
-            <option value="all">Semua wilayah</option>
-            {regions.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
-          </select>
+          <RegionFilter value={regionId === 'all' ? null : regionId} onChange={(id) => setRegionId(id ?? 'all')} />
           <select className="input" style={{ ...selectStyle, width: '100%' }} value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
             <option value="terbaru">Urutkan: Terbaru</option>
             <option value="kredibilitas">Urutkan: Kredibilitas</option>
