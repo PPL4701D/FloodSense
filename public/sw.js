@@ -1,8 +1,9 @@
 /**
- * FR-055 (PBI-30) — Service Worker PWA: cache app-shell + fallback offline.
- * Catatan: push notification ditangani sw-push.js terpisah (PBI-16).
+ * FR-055 (PBI-30) + FR-033 (PBI-16) — Service Worker tunggal FloodSense.
+ * Menangani cache app-shell + fallback offline DAN Web Push (digabung agar
+ * tidak saling menimpa di scope '/'; dulu sw-push.js terpisah → konflik).
  */
-const CACHE = 'floodsense-shell-v1';
+const CACHE = 'floodsense-shell-v2';
 const SHELL = ['/', '/reports', '/offline.html', '/manifest.json', '/floodsense-logo.png'];
 
 self.addEventListener('install', (event) => {
@@ -41,4 +42,41 @@ self.addEventListener('fetch', (event) => {
       }).catch(() => cached))
     );
   }
+});
+
+// --- FR-033 (PBI-16): Web Push ---
+self.addEventListener('push', (event) => {
+  if (!event.data) return;
+  try {
+    const data = event.data.json();
+    event.waitUntil(
+      self.registration.showNotification(data.title || 'FloodSense', {
+        body: data.body || 'Notifikasi baru dari FloodSense',
+        icon: data.icon || '/floodsense-logo.png',
+        badge: '/floodsense-logo.png',
+        vibrate: [200, 100, 200],
+        data: { url: data.url || '/' },
+        actions: [
+          { action: 'open', title: 'Buka' },
+          { action: 'dismiss', title: 'Tutup' },
+        ],
+      })
+    );
+  } catch (err) {
+    console.error('Push event error:', err);
+  }
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  if (event.action === 'dismiss') return;
+  const url = event.notification.data?.url || '/';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes(url) && 'focus' in client) return client.focus();
+      }
+      return self.clients.openWindow(url);
+    })
+  );
 });
