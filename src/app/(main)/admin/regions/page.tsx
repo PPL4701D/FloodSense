@@ -4,16 +4,20 @@
  * FR-054 (PBI-29) — Manajemen Wilayah (Region CRUD) Admin
  *
  * Halaman /admin/regions (admin only). List wilayah + search + filter level,
- * form tambah/edit (nama, level, induk cascading, kode), dan hapus dengan guard
- * (dicegah bila punya anak/laporan). Boundary GeoJSON menyusul.
+ * form tambah/edit (nama, level, induk cascading, kode), hapus dengan guard
+ * (dicegah bila punya anak/laporan), dan editor boundary (gambar/paste GeoJSON
+ * di peta → regions.boundary PostGIS) via RegionBoundaryEditor.
  */
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { useAuth } from '@/lib/hooks/useAuth';
 import WaveLoader from '@/components/ui/WaveLoader';
-import { MapPinned, Plus, Pencil, Trash2, Search, X, Loader2, Save } from 'lucide-react';
+import { MapPinned, Plus, Pencil, Trash2, Search, X, Loader2, Save, Map } from 'lucide-react';
 import type { RegionLevel } from '@/types/database';
+
+const RegionBoundaryEditor = dynamic(() => import('@/components/admin/RegionBoundaryEditor'), { ssr: false });
 
 interface RegionRow { id: string; name: string; level: RegionLevel; parent_id: string | null; code: string | null }
 
@@ -41,6 +45,7 @@ export default function AdminRegionsPage() {
   const [form, setForm] = useState<FormState | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [boundaryRegion, setBoundaryRegion] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     if (!authLoading && role !== 'admin') router.replace('/');
@@ -144,6 +149,9 @@ export default function AdminRegionsPage() {
                 {r.level !== 'provinsi' && <>Induk: {nameOf(r.parent_id)} · </>}{r.code ? `Kode: ${r.code}` : 'Tanpa kode'}
               </p>
             </div>
+            <button onClick={() => setBoundaryRegion({ id: r.id, name: r.name })} title="Boundary (peta)" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex' }}>
+              <Map size={15} color="var(--primary-400)" />
+            </button>
             <button onClick={() => { setError(null); setForm({ id: r.id, name: r.name, level: r.level, parent_id: r.parent_id ?? '', code: r.code ?? '' }); }} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex' }}>
               <Pencil size={15} color="var(--text-secondary)" />
             </button>
@@ -193,6 +201,10 @@ export default function AdminRegionsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {boundaryRegion && (
+        <RegionBoundaryEditor region={boundaryRegion} onClose={() => setBoundaryRegion(null)} />
       )}
     </div>
   );
