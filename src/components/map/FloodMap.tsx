@@ -597,7 +597,7 @@ export default function FloodMap() {
       {/* Legend Popup — appears above info button when open */}
       {showLegend && (
         <div className="glass" style={{
-          position: 'absolute', bottom: '220px', right: '16px', zIndex: 1000,
+          position: 'absolute', bottom: '276px', right: '16px', zIndex: 1000,
           padding: '0.875rem', borderRadius: 'var(--radius-md)',
           display: 'flex', flexDirection: 'column', gap: '0.5rem',
           minWidth: '150px',
@@ -672,21 +672,21 @@ export default function FloodMap() {
         </span>
       </div>
 
-      {/* FR-057: Tombol Time-lapse (kiri bawah) */}
+      {/* FR-057: Tombol Time-lapse — icon-only, sejajar vertikal dgn locate & legend (kanan) */}
       {!showTimelapse && (
         <button
           onClick={() => setShowTimelapse(true)}
           title="Time-lapse historis"
           style={{
-            position: 'absolute', bottom: '24px', left: '16px', zIndex: 1000,
-            display: 'flex', alignItems: 'center', gap: '0.4rem',
-            padding: '0.5rem 0.75rem', borderRadius: '999px',
+            position: 'absolute', bottom: '220px', right: '16px', zIndex: 1000,
+            width: '44px', height: '44px', borderRadius: '50%',
             background: 'var(--bg-card)', border: '1px solid var(--border-primary)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer', boxShadow: 'var(--shadow-md)',
-            fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)',
+            transition: 'all var(--transition-fast)',
           }}
         >
-          <History size={16} color="var(--primary-400)" /> Time-lapse
+          <History size={20} color="var(--primary-400)" />
         </button>
       )}
 
