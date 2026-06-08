@@ -11,13 +11,17 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 interface NomAddress {
   state?: string;
-  city?: string;
+  state_district?: string;
   county?: string;
+  region?: string;
+  city?: string;
   municipality?: string;
   city_district?: string;
+  subdistrict?: string;
   suburb?: string;
   town?: string;
   village?: string;
+  neighbourhood?: string;
 }
 
 interface NamedRegion { id: string; name: string }
@@ -41,6 +45,16 @@ function bestMatch(candidates: NamedRegion[], target: string): NamedRegion | nul
   return m ?? null;
 }
 
+/** Coba beberapa kandidat nama (urut prioritas); kembalikan match pertama. */
+function matchFirst(candidates: NamedRegion[], names: Array<string | undefined>): NamedRegion | null {
+  for (const n of names) {
+    if (!n) continue;
+    const m = bestMatch(candidates, n);
+    if (m) return m;
+  }
+  return null;
+}
+
 export async function resolveRegionId(
   supabase: SupabaseClient,
   lat: number,
@@ -54,8 +68,10 @@ export async function resolveRegionId(
     const a: NomAddress = data?.address ?? {};
 
     const provName = a.state;
-    const kabName = a.city || a.county || a.municipality;
-    const kecName = a.city_district || a.suburb || a.town || a.village;
+    // Kabupaten/kota: utamakan county/state_district (nama administratif), baru city/municipality.
+    // (mis. Purwokerto → city="Purwokerto" bukan kabupaten, tapi county="Banyumas" = Kab. Banyumas)
+    const kabCandidates = [a.county, a.state_district, a.city, a.municipality, a.region];
+    const kecCandidates = [a.city_district, a.subdistrict, a.suburb, a.town, a.village, a.neighbourhood];
     if (!provName) return null;
 
     // Provinsi
@@ -65,18 +81,14 @@ export async function resolveRegionId(
     let regionId = prov.id;
 
     // Kabupaten/Kota
-    if (kabName) {
-      const { data: kabs } = await supabase.from('regions').select('id, name').eq('level', 'kabupaten').eq('parent_id', prov.id);
-      const kab = bestMatch((kabs as NamedRegion[] | null) ?? [], kabName);
-      if (kab) {
-        regionId = kab.id;
-        // Kecamatan
-        if (kecName) {
-          const { data: kecs } = await supabase.from('regions').select('id, name').eq('level', 'kecamatan').eq('parent_id', kab.id);
-          const kec = bestMatch((kecs as NamedRegion[] | null) ?? [], kecName);
-          if (kec) regionId = kec.id;
-        }
-      }
+    const { data: kabs } = await supabase.from('regions').select('id, name').eq('level', 'kabupaten').eq('parent_id', prov.id);
+    const kab = matchFirst((kabs as NamedRegion[] | null) ?? [], kabCandidates);
+    if (kab) {
+      regionId = kab.id;
+      // Kecamatan
+      const { data: kecs } = await supabase.from('regions').select('id, name').eq('level', 'kecamatan').eq('parent_id', kab.id);
+      const kec = matchFirst((kecs as NamedRegion[] | null) ?? [], kecCandidates);
+      if (kec) regionId = kec.id;
     }
     return regionId;
   } catch {
