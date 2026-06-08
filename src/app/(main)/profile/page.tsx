@@ -62,10 +62,10 @@ export default function ProfilePage() {
   return (
     <>
       <style>{`
-        .profile-page { padding: 1rem; max-width: 800px; margin: 0 auto; }
+        .profile-page { padding: 1rem; max-width: 800px; margin: 0 auto; height: 100%; overflow-y: auto; padding-bottom: 88px; }
         .profile-grid { display: flex; flex-direction: column; gap: 1rem; }
         @media (min-width: 768px) {
-          .profile-page { padding: 2rem; }
+          .profile-page { padding: 2rem; padding-bottom: 88px; }
           .profile-grid { display: grid; grid-template-columns: 320px 1fr; gap: 1.5rem; align-items: start; }
         }
       `}</style>
