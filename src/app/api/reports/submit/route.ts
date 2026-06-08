@@ -38,60 +38,41 @@ export async function POST(req: NextRequest) {
     }
 
     // --- FR-021: Spam/Duplicate Detection ---
+    const SPAM_LIMIT = 5;   // 5 laporan/jam diizinkan; laporan ke-6+ ditandai spam
+    const HARD_LIMIT = 20;  // batas keras anti-abuse → HTTP 429
 
-    // Check 1: Rate limit — >10 reports in last 1 hour
+    // Hitung jumlah laporan reporter dalam 1 jam terakhir.
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     const { count: recentCount } = await supabase
       .from('reports')
       .select('id', { count: 'exact', head: true })
       .eq('reporter_id', user.id)
       .gte('created_at', oneHourAgo);
+    const hourCount = recentCount ?? 0;
 
-    if ((recentCount ?? 0) >= 10) {
+    // Batas keras: cegah abuse berlebihan.
+    if (hourCount >= HARD_LIMIT) {
       return NextResponse.json(
-        { error: 'Batas laporan tercapai (maks 10 per jam). Coba lagi nanti.' },
+        { error: `Batas laporan tercapai (maks ${HARD_LIMIT} per jam). Coba lagi nanti.` },
         { status: 429 }
       );
     }
 
-    // Check 2: Duplicate — same reporter, within ~100m, in last 30 minutes
-    // Using PostGIS ST_DWithin if available, fallback to bounding box
-    const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
     let isDuplicate = false;
 
-    // Approximate 100m in degrees (~0.001 for lat/lng)
-    const degreeApprox = 0.001;
-    const { data: nearbyReports } = await supabase
-      .from('reports')
-      .select('id')
-      .eq('reporter_id', user.id)
-      .gte('created_at', thirtyMinAgo)
-      .not('status', 'eq', 'rejected');
-
-    if (nearbyReports && nearbyReports.length > 0) {
-      // We have reports from this user in the last 30 min, check proximity
-      // Since we can't easily do ST_DWithin from client SDK, use RPC if available
-      // Fallback: flag if ANY report from user in last 30min exists (conservative)
-      const { data: proximityCheck } = await supabase.rpc('check_nearby_report', {
+    // Spam rate: lebih dari 5 laporan dalam 1 jam → laporan ke-6+ ditandai (disembunyikan dari peta).
+    if (hourCount >= SPAM_LIMIT) {
+      isDuplicate = true;
+    } else {
+      // Duplikat lokasi: laporan reporter sendiri dalam radius ~100m & 30 menit terakhir (PostGIS).
+      const { data: isDup } = await supabase.rpc('check_nearby_report', {
         p_reporter_id: user.id,
-        p_lat: lat,
-        p_lng: lng,
+        p_lat: Number(lat),
+        p_lng: Number(lng),
         p_radius_meters: 100,
         p_minutes_ago: 30,
-      }).maybeSingle();
-
-      if ((proximityCheck as Record<string, unknown>)?.exists) {
-        isDuplicate = true;
-      } else if (!proximityCheck) {
-        // RPC not available — fallback bounding box check
-        // This is less accurate but works without PostGIS RPC
-        for (const _report of nearbyReports) {
-          // If we have any recent report from same user, flag for review
-          // In production, the PostGIS RPC would handle precision
-          isDuplicate = true;
-          break;
-        }
-      }
+      });
+      if (isDup === true) isDuplicate = true;
     }
 
     // --- Insert Report ---
