@@ -17,15 +17,13 @@ export async function DELETE() {
 
     const admin = createAdminClient();
 
-    // Catat sebelum dihapus
-    await admin.from('audit_logs').insert({
-      actor_id: user.id, action: 'account_delete', target_type: 'user', target_id: user.id, details: {},
-    });
+    // Catatan: audit_logs.actor_id ber-FK CASCADE ke profiles, sehingga log
+    // penghapusan akun ikut terhapus bersama user — tidak dicatat di sini.
 
     const { error: delErr } = await admin.auth.admin.deleteUser(user.id);
     if (delErr) {
       console.error('account delete error:', delErr);
-      return NextResponse.json({ error: 'Gagal menghapus akun' }, { status: 500 });
+      return NextResponse.json({ error: `Gagal menghapus akun: ${delErr.message}` }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
