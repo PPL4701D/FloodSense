@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { sendEmail, buildNewReportEmail } from '@/lib/email/resend';
 import { resolveRegionId } from '@/lib/geo/resolveRegion';
+import { sendWebPushToUsers } from '@/lib/push/send';
 
 /**
  * FR-006 + FR-021: Report Submission with Spam/Duplicate Detection
@@ -160,6 +161,14 @@ export async function POST(req: NextRequest) {
 
         if (notifications.length > 0) {
           await adminSupabase.from('notifications').insert(notifications);
+          // FR-033: kirim juga WEB PUSH ke pengguna titik pantau (bukan hanya in-app/toast).
+          const notifiedIds = notifications.map((n) => n.user_id);
+          const pushAddr = address || `${reportLat.toFixed(4)}, ${reportLng.toFixed(4)}`;
+          await sendWebPushToUsers(notifiedIds, {
+            title: '🌊 Banjir di Area Pantauan Anda',
+            body: `Laporan banjir baru di ${pushAddr}. Ketuk untuk melihat detail.`,
+            url: `/report/${report.id}`,
+          });
         }
       }
     } catch (e: unknown) {
