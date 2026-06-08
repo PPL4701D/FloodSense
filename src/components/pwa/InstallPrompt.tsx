@@ -77,17 +77,16 @@ export default function InstallPrompt() {
         onClick={() => setView('banner')}
         title="Pasang FloodSense"
         aria-label="Pasang FloodSense"
-        className="glass"
         style={{
           ...ANCHOR,
-          width: '52px', height: '52px', borderRadius: '50%', padding: 0,
-          border: '1px solid var(--border-primary)', cursor: 'pointer',
-          boxShadow: 'var(--shadow-lg)', overflow: 'hidden',
+          width: '56px', height: '56px', padding: 0,
+          border: 'none', background: 'transparent', cursor: 'pointer',
+          filter: 'drop-shadow(0 3px 8px rgba(0,0,0,0.45))',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/floodsense-logo.png" alt="FloodSense" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        <img src="/floodsense-logo.png" alt="FloodSense" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
         <span style={{
           position: 'absolute', top: '-2px', right: '-2px', width: '16px', height: '16px',
           borderRadius: '50%', background: 'var(--primary-500)', border: '2px solid var(--bg-primary)',
@@ -111,9 +110,9 @@ export default function InstallPrompt() {
         boxShadow: 'var(--shadow-lg)',
       }}
     >
-      <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-md)', overflow: 'hidden', flexShrink: 0, background: 'var(--bg-elevated)' }}>
+      <div style={{ width: '44px', height: '44px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/floodsense-logo.png" alt="FloodSense" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        <img src="/floodsense-logo.png" alt="FloodSense" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <p style={{ fontSize: '0.8125rem', fontWeight: 700, margin: 0 }}>Pasang FloodSense</p>
