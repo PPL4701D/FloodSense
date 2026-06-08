@@ -13,7 +13,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { createClient } from '@/lib/supabase/client';
 import WaveLoader from '@/components/ui/WaveLoader';
-import { ScrollText, Filter, Download, ChevronDown, ChevronRight, Loader2, Search, RefreshCw, User } from 'lucide-react';
+import { ScrollText, Filter, Download, ChevronDown, ChevronRight, Loader2, Search, RefreshCw, User, ChevronLeft } from 'lucide-react';
 
 interface AuditLogRow {
   id: string;
@@ -173,6 +173,9 @@ export default function AuditLogsPage() {
 
   return (
     <div style={{ padding: '1rem', maxWidth: '900px', margin: '0 auto', paddingBottom: '88px', height: '100%', overflowY: 'auto' }}>
+      <button onClick={() => router.push('/admin')} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: '0.75rem' }}>
+        <ChevronLeft size={16} /> Kembali ke Admin
+      </button>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
         <ScrollText size={20} color="var(--primary-400)" />
         <h1 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Audit Log</h1>

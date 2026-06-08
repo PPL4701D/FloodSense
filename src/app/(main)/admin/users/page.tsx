@@ -107,7 +107,7 @@ export default function AdminUsersPage() {
         borderBottom: '1px solid var(--border-primary)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-          <button onClick={() => router.back()} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex' }}>
+          <button onClick={() => router.push('/admin')} title="Kembali ke Admin" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex' }}>
             <ChevronLeft size={20} color="var(--text-primary)" />
           </button>
           <div style={{ flex: 1 }}>
