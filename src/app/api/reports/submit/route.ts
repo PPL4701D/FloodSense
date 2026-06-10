@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
 
     // --- FR-021: Spam/Duplicate Detection ---
     const SPAM_LIMIT = 5;   // 5 laporan/jam diizinkan; laporan ke-6+ ditandai spam
-    const HARD_LIMIT = 20;  // batas keras anti-abuse → HTTP 429
+    const HARD_LIMIT = 10;  // Rule 2: >10 laporan/jam → HTTP 429
 
     // Hitung jumlah laporan reporter dalam 1 jam terakhir.
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
@@ -66,13 +66,14 @@ export async function POST(req: NextRequest) {
       isDuplicate = true;
     } else {
       // Duplikat lokasi: laporan reporter sendiri dalam radius ~100m & 30 menit terakhir (PostGIS).
-      const { data: isDup } = await supabase.rpc('check_nearby_report', {
+      const { data: isDup, error: dupError } = await supabase.rpc('check_nearby_report', {
         p_reporter_id: user.id,
         p_lat: Number(lat),
         p_lng: Number(lng),
         p_radius_meters: 100,
         p_minutes_ago: 30,
       });
+      if (dupError) console.error('check_nearby_report error:', dupError);
       if (isDup === true) isDuplicate = true;
     }
 
