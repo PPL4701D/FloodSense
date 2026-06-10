@@ -5,6 +5,11 @@ import { useRouter } from 'next/navigation';
 import { CheckCircle, XCircle, Search, Loader2, Send } from 'lucide-react';
 import type { VerificationDecision } from '@/types/database';
 
+function getDatetimeLocalValue(date = new Date()) {
+  const timezoneOffset = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - timezoneOffset).toISOString().slice(0, 16);
+}
+
 interface VerificationPanelProps {
   reportId: string;
   onSuccess?: (decision: VerificationDecision) => void;
@@ -15,11 +20,17 @@ export default function VerificationPanel({ reportId, onSuccess }: VerificationP
   const [loading, setLoading] = useState(false);
   const [decision, setDecision] = useState<VerificationDecision>('verified');
   const [notes, setNotes] = useState('');
+  const [scheduledCheckAt, setScheduledCheckAt] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const handleVerify = async () => {
     if (!notes.trim() && decision !== 'verified') {
-      setError('Catatan wajib diisi jika menolak atau membedwalkan peninjauan laporan.');
+      setError('Catatan wajib diisi jika menolak atau menjadwalkan peninjauan laporan.');
+      return;
+    }
+
+    if (decision === 'scheduled_check' && !scheduledCheckAt) {
+      setError('Jadwal peninjauan ulang wajib diisi.');
       return;
     }
     
@@ -30,7 +41,12 @@ export default function VerificationPanel({ reportId, onSuccess }: VerificationP
       const response = await fetch('/api/verification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ report_id: reportId, decision, notes }),
+        body: JSON.stringify({
+          report_id: reportId,
+          decision,
+          notes,
+          scheduled_check_at: decision === 'scheduled_check' ? new Date(scheduledCheckAt).toISOString() : null,
+        }),
       });
       
       const data = await response.json();
@@ -116,7 +132,23 @@ export default function VerificationPanel({ reportId, onSuccess }: VerificationP
           <span style={{ fontSize: '0.6875rem', fontWeight: 600 }}>Tinjau di Lapangan</span>
         </button>
       </div>
-      
+
+      {decision === 'scheduled_check' && (
+        <div style={{ marginBottom: '1rem' }}>
+          <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+            Jadwal Peninjauan Ulang:
+          </label>
+          <input
+            type="datetime-local"
+            value={scheduledCheckAt}
+            min={getDatetimeLocalValue()}
+            onChange={(e) => setScheduledCheckAt(e.target.value)}
+            className="input"
+            style={{ width: '100%' }}
+          />
+        </div>
+      )}
+
       <div style={{ marginBottom: '1.25rem' }}>
         <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
           Tambahkan Catatan Moderasi:

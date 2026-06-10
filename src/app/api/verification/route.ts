@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { report_id, decision, notes } = body;
+    const { report_id, decision, notes, scheduled_check_at } = body;
 
     if (!report_id || !decision) {
       return NextResponse.json(
@@ -41,6 +41,26 @@ export async function POST(req: NextRequest) {
         { error: 'Invalid decision' },
         { status: 400 }
       );
+    }
+
+    let scheduledCheckAt: string | null = null;
+    if (decision === 'scheduled_check') {
+      if (!scheduled_check_at) {
+        return NextResponse.json(
+          { error: 'scheduled_check_at is required for scheduled checks' },
+          { status: 400 }
+        );
+      }
+
+      const scheduledDate = new Date(scheduled_check_at);
+      if (Number.isNaN(scheduledDate.getTime())) {
+        return NextResponse.json(
+          { error: 'Invalid scheduled_check_at' },
+          { status: 400 }
+        );
+      }
+
+      scheduledCheckAt = scheduledDate.toISOString();
     }
 
     let reportStatus = decision;
@@ -69,6 +89,7 @@ export async function POST(req: NextRequest) {
       staff_id: user.id,
       decision,
       notes: notes || '',
+      scheduled_check_at: scheduledCheckAt,
     });
 
     // Update reporter reputation (FR-020)
@@ -133,7 +154,7 @@ export async function POST(req: NextRequest) {
       action_type: decision === 'verified' ? 'REPORT_VERIFY' : decision === 'rejected' ? 'REPORT_REJECT' : 'REPORT_SCHEDULE_CHECK',
       target_type: 'report',
       target_id: report_id,
-      delta: { decision, notes: notes || null },
+      delta: { decision, notes: notes || null, scheduled_check_at: scheduledCheckAt },
     });
 
     return NextResponse.json({ success: true, decision });

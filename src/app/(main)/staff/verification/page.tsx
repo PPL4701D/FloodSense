@@ -52,6 +52,11 @@ const STATUS_MAP: Record<ReportStatus, { color: string; bg: string; label: strin
   moderated:        { color: '#94a3b8', bg: 'rgba(148,163,184,0.12)',label: 'Dimoderasi',      icon: Shield },
 };
 
+function getDatetimeLocalValue(date = new Date()) {
+  const timezoneOffset = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - timezoneOffset).toISOString().slice(0, 16);
+}
+
 // ---- Verification Page ----
 export default function StaffVerificationPage() {
   const { user, role, isAuthenticated, loading: authLoading } = useAuth();
@@ -190,19 +195,6 @@ export default function StaffVerificationPage() {
               {filteredReports.length} laporan memerlukan perhatian
             </p>
           </div>
-          {/* FR-050: Antrian pemeriksaan ulang terjadwal */}
-          <Link
-            href="/staff/recheck"
-            title="Antrian Pemeriksaan Ulang"
-            style={{
-              display: 'flex', alignItems: 'center', gap: '0.375rem',
-              padding: '6px 10px', borderRadius: '8px', textDecoration: 'none',
-              background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)',
-              fontSize: '0.75rem', color: 'var(--text-secondary)',
-            }}
-          >
-            <Calendar size={12} /> Re-check
-          </Link>
           {/* FR-021: Deteksi duplikat & spam */}
           <Link
             href="/staff/clusters"
@@ -518,6 +510,7 @@ function ReportDetailPanel({ report, onClose, onAction }: {
   const supabase = createClient();
   const [notes, setNotes] = useState('');
   const [decision, setDecision] = useState<VerificationDecision | null>(null);
+  const [scheduledCheckAt, setScheduledCheckAt] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
@@ -569,11 +562,21 @@ function ReportDetailPanel({ report, onClose, onAction }: {
 
   const handleSubmit = async () => {
     if (!decision) return;
+    if (decision === 'scheduled_check' && !scheduledCheckAt) {
+      setError('Jadwal peninjauan ulang wajib diisi.');
+      return;
+    }
+
     setSubmitting(true); setError(null);
     try {
       const response = await fetch('/api/verification', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ report_id: report.id, decision, notes: notes || '' }),
+        body: JSON.stringify({
+          report_id: report.id,
+          decision,
+          notes: notes || '',
+          scheduled_check_at: decision === 'scheduled_check' ? new Date(scheduledCheckAt).toISOString() : null,
+        }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Gagal memproses verifikasi');
@@ -856,6 +859,26 @@ function ReportDetailPanel({ report, onClose, onAction }: {
                   );
                 })}
               </div>
+
+              {decision === 'scheduled_check' && (
+                <div style={{ marginBottom: '0.875rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+                    Jadwal Peninjauan Ulang
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={scheduledCheckAt}
+                    min={getDatetimeLocalValue()}
+                    onChange={(e) => setScheduledCheckAt(e.target.value)}
+                    style={{
+                      width: '100%', padding: '0.75rem',
+                      borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)',
+                      background: 'rgba(255,255,255,0.04)', color: 'var(--text-primary)',
+                      fontSize: '0.8125rem', outline: 'none', boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+              )}
 
               <textarea
                 value={notes}
