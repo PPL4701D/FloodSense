@@ -153,10 +153,10 @@ e2e/                  # test Playwright (per PBI) + helpers
 |------|--------|
 | Andrarieza Rizqi Pradana | [@ezaarp](https://github.com/ezaarp) |
 | Adnan Rizki | [@Adnan0908](https://github.com/Adnan0908) |
-| Valerina | [@valerinass](https://github.com/valerinass) |
+| Valerina Sherin | [@valerinass](https://github.com/valerinass) |
 | Arjuna Dwi Putra Kunaefi | [@arjunadwipk](https://github.com/arjunadwipk) |
-| Raihan Ardhana | [@Ardhaneee](https://github.com/Ardhaneee) |
-| Ihsan / Andi | [@S4nn-Tuyy](https://github.com/S4nn-Tuyy) |
+| Raihan Nauval Ardhana | [@Ardhaneee](https://github.com/Ardhaneee) |
+| Andi Muh Ihsanul Haq | [@S4nn-Tuyy](https://github.com/S4nn-Tuyy) |
 | Viki Firmansyah | [@Vikstee](https://github.com/Vikstee) |
 
 ---
