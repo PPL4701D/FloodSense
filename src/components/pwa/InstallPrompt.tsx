@@ -5,9 +5,10 @@
  *
  * 1. Mendaftarkan service worker (/sw.js) untuk cache app-shell & offline.
  * 2. Menangkap event beforeinstallprompt → menampilkan kartu "Pasang Aplikasi"
- *    di pojok kanan bawah (tidak menabrak navbar/peta). Tombol tutup MENGECILKAN
- *    kartu menjadi logo (FAB) di pojok; klik logo untuk membuka lagi.
- *    Disembunyikan bila sudah ter-install (standalone). Dipasang global di AppShell.
+ *    di pojok kanan bawah (tidak menabrak navbar/peta). Tombol X pada kartu
+ *    MENGECILKAN menjadi logo (FAB); klik logo untuk membuka lagi, dan tombol X
+ *    pada logo mini MENUTUP permanen (localStorage). Disembunyikan bila sudah
+ *    ter-install (standalone). Dipasang global di AppShell.
  */
 
 import { useEffect, useState } from 'react';
@@ -47,6 +48,8 @@ export default function InstallPrompt() {
 
     const onPrompt = (e: Event) => {
       e.preventDefault();
+      // Pengguna sudah menutup (X) prompt sebelumnya → jangan tampilkan lagi.
+      try { if (localStorage.getItem('fs-install-dismissed') === '1') return; } catch { /* noop */ }
       setDeferred(e as BeforeInstallPromptEvent);
       setView(start);
     };
@@ -68,33 +71,55 @@ export default function InstallPrompt() {
     try { sessionStorage.setItem('fs-install-mini', '1'); } catch { /* noop */ }
   };
 
+  // Tutup permanen (X pada logo mini) → tidak muncul lagi sampai storage dibersihkan.
+  const close = () => {
+    setView('hidden');
+    setDeferred(null);
+    try { localStorage.setItem('fs-install-dismissed', '1'); } catch { /* noop */ }
+  };
+
   if (view === 'hidden') return null;
 
-  // Logo FAB (minimized)
+  // Logo FAB (minimized) — klik logo membuka kartu, tombol X menutup permanen.
   if (view === 'mini') {
     return (
-      <button
-        onClick={() => setView('banner')}
-        title="Pasang FloodSense"
-        aria-label="Pasang FloodSense"
-        style={{
-          ...ANCHOR,
-          width: '56px', height: '56px', padding: 0,
-          border: 'none', background: 'transparent', cursor: 'pointer',
-          filter: 'drop-shadow(0 3px 8px rgba(0,0,0,0.45))',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/floodsense-logo.png" alt="FloodSense" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+      <div style={{ ...ANCHOR, width: '56px', height: '56px', filter: 'drop-shadow(0 3px 8px rgba(0,0,0,0.45))' }}>
+        <button
+          onClick={() => setView('banner')}
+          title="Pasang FloodSense"
+          aria-label="Pasang FloodSense"
+          style={{
+            width: '100%', height: '100%', padding: 0,
+            border: 'none', background: 'transparent', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/floodsense-logo.png" alt="FloodSense" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        </button>
+        {/* Indikator install (pojok bawah) */}
         <span style={{
-          position: 'absolute', top: '-2px', right: '-2px', width: '16px', height: '16px',
+          position: 'absolute', bottom: '-2px', right: '-2px', width: '16px', height: '16px',
           borderRadius: '50%', background: 'var(--primary-500)', border: '2px solid var(--bg-primary)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none',
         }}>
           <Download size={9} color="#fff" />
         </span>
-      </button>
+        {/* Tombol tutup (X) di pojok atas */}
+        <button
+          onClick={close}
+          title="Tutup"
+          aria-label="Tutup"
+          style={{
+            position: 'absolute', top: '-6px', right: '-6px', width: '18px', height: '18px', padding: 0,
+            borderRadius: '50%', cursor: 'pointer', background: 'var(--bg-card)',
+            border: '1px solid var(--border-primary)', boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <X size={11} color="var(--text-secondary)" />
+        </button>
+      </div>
     );
   }
 
