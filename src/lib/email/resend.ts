@@ -9,17 +9,25 @@
 const RESEND_ENDPOINT = 'https://api.resend.com/emails';
 const FROM = process.env.RESEND_FROM || 'FloodSense <onboarding@resend.dev>';
 
+// Domain test Resend (onboarding@resend.dev) hanya boleh mengirim ke alamat pemilik
+// akun. Selama domain belum diverifikasi, set RESEND_TEST_RECIPIENT ke email pemilik
+// akun → seluruh alert dialihkan ke alamat itu agar pengiriman tetap berhasil.
+// Untuk produksi: verifikasi domain, set RESEND_FROM ke domain itu, dan KOSONGKAN
+// RESEND_TEST_RECIPIENT agar email terkirim ke penerima asli.
+const TEST_RECIPIENT = process.env.RESEND_TEST_RECIPIENT;
+
 export interface SendResult { ok: boolean; skipped?: boolean; status?: number; error?: string }
 
 export async function sendEmail(to: string[], subject: string, html: string): Promise<SendResult> {
   const key = process.env.RESEND_API_KEY;
   if (!key) return { ok: false, skipped: true, error: 'RESEND_API_KEY tidak diset' };
   if (!to || to.length === 0) return { ok: false, skipped: true, error: 'Tidak ada penerima' };
+  const recipients = TEST_RECIPIENT ? [TEST_RECIPIENT] : to;
   try {
     const res = await fetch(RESEND_ENDPOINT, {
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: FROM, to, subject, html }),
+      body: JSON.stringify({ from: FROM, to: recipients, subject, html }),
     });
     if (!res.ok) {
       const t = await res.text();
