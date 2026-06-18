@@ -13,6 +13,10 @@ export const ACCOUNTS = {
   // Akun khusus PBI Valerina (push/komentar/re-check) agar tak mengotori akun bersama.
   valerina_warga: { email: 'valerina.warga@fs.id', password: '123456' },
   valerina_staf: { email: 'valerina.staf@fs.id', password: '123456' },
+  // Akun khusus PBI Adnan (bell/preferensi notif/manajemen akun) — terisolasi, password Test@1234!.
+  pbi24Tlm: { email: 'pbi24.tlm@fs.id', password: 'Test@1234!' },
+  pbi33Warga: { email: 'pbi33.warga@fs.id', password: 'Test@1234!' },
+  pbi34Warga: { email: 'pbi34.warga@fs.id', password: 'Test@1234!' },
 } as const;
 
 export type Role = keyof typeof ACCOUNTS;
