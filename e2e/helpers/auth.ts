@@ -10,6 +10,9 @@ export const ACCOUNTS = {
   tlm: { email: 'tlm@fs.id', password: '123456' },
   staf: { email: 'staf@fs.id', password: '123456' },
   warga: { email: 'warga@fs.id', password: '123456' },
+  // Akun khusus PBI Valerina (push/komentar/re-check) agar tak mengotori akun bersama.
+  valerina_warga: { email: 'valerina.warga@fs.id', password: '123456' },
+  valerina_staf: { email: 'valerina.staf@fs.id', password: '123456' },
 } as const;
 
 export type Role = keyof typeof ACCOUNTS;
