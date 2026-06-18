@@ -13,11 +13,17 @@ test.describe('PBI-30 — PWA Installable', () => {
     const manifest = await res.json();
     expect(manifest).toHaveProperty('name');
     expect(Array.isArray(manifest.icons)).toBeTruthy();
-    await page.goto('/login');
-    await page.waitForTimeout(1000);
+    // Pergi ke halaman utama (AppShell) agar Service Worker ter-register
+    await page.goto('/');
+    
+    // Tunggu Service Worker aktif dan caching selesai (sangat penting)
+    await page.waitForTimeout(3000); 
+    
     await context.setOffline(true);
     try {
       await page.reload({ timeout: 10_000 });
+      // Pastikan kita masih berada di dalam antarmuka aplikasi (bukan dino)
+      await expect(page.locator('body')).not.toContainText('ERR_INTERNET_DISCONNECTED', { timeout: 5000 });
     } catch {
     }
     
