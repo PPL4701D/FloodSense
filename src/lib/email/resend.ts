@@ -28,6 +28,7 @@ export async function sendEmail(to: string[], subject: string, html: string): Pr
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ from: FROM, to: recipients, subject, html }),
+      signal: AbortSignal.timeout(8000), // jangan menggantung bila Resend lambat
     });
     if (!res.ok) {
       const t = await res.text();
