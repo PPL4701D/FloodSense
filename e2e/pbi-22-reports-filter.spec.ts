@@ -124,4 +124,63 @@ test.describe('PBI-22 — Filter & Pagination Laporan', () => {
     // Pastikan halaman tidak error dan heading “Laporan Banjir” tetap tampil
     await expect(page.getByRole('heading', { name: 'Laporan Banjir' })).toBeVisible();
   });
+
+  test('TC-58: reset filter mengembalikan semua state ke default dan URL bersih', async ({ page }) => {
+    await login(page, 'warga');
+    await page.goto('/reports');
+    await expect(page.getByRole('heading', { name: 'Laporan Banjir' })).toBeVisible({ timeout: 15_000 });
+
+    // === Aktifkan beberapa filter sekaligus ===
+
+    // 1. Ketik keyword pencarian.
+    await page.getByPlaceholder(/Cari lokasi atau deskripsi/i).fill('banjir');
+    await expect(page).toHaveURL(/q=banjir/, { timeout: 10_000 });
+
+    // 2. Pilih filter keparahan "Berat".
+    const severitySelect = page.locator('select:has(option[value="ringan"])');
+    await severitySelect.selectOption('berat');
+    await expect(page).toHaveURL(/severity=berat/, { timeout: 10_000 });
+
+    // 3. Pilih filter status "Ditolak".
+    const statusSelect = page.locator('select:has(option[value="pending"])');
+    await statusSelect.selectOption('rejected');
+    await expect(page).toHaveURL(/status=rejected/, { timeout: 10_000 });
+
+    // 4. Pilih sort "Kredibilitas".
+    const sortSelect = page.locator('select:has(option[value="kredibilitas"])');
+    await sortSelect.selectOption('kredibilitas');
+    await expect(page).toHaveURL(/sort=kredibilitas/, { timeout: 10_000 });
+
+    // Pastikan tombol "Reset filter" tampil karena ada filter aktif.
+    const resetBtn = page.getByRole('button', { name: /Reset filter/i }).first();
+    await expect(resetBtn).toBeVisible({ timeout: 5_000 });
+
+    // === Klik Reset filter ===
+    await resetBtn.click();
+
+    // === Verifikasi semua filter kembali ke default ===
+
+    // Input pencarian harus kosong.
+    await expect(page.getByPlaceholder(/Cari lokasi atau deskripsi/i)).toHaveValue('');
+
+    // Dropdown keparahan kembali ke "all" (Semua keparahan).
+    await expect(severitySelect).toHaveValue('all');
+
+    // Dropdown status kembali ke "all" (Semua status).
+    await expect(statusSelect).toHaveValue('all');
+
+    // Dropdown sort kembali ke "terbaru".
+    await expect(sortSelect).toHaveValue('terbaru');
+
+    // URL harus bersih, tidak memuat query parameter filter apapun.
+    await page.waitForTimeout(600); // tunggu debounce selesai
+    const currentUrl = page.url();
+    expect(currentUrl, 'URL masih mengandung parameter filter setelah reset').not.toMatch(/[?&](q|severity|status|sort|from|to|region)=/);
+
+    // Tombol "Reset filter" harus hilang karena tidak ada filter aktif.
+    await expect(resetBtn).toBeHidden({ timeout: 5_000 });
+
+    // Heading tetap tampil — halaman tidak error.
+    await expect(page.getByRole('heading', { name: 'Laporan Banjir' })).toBeVisible();
+  });
 });
