@@ -175,4 +175,82 @@ test.describe('PBI-12 — Grafik, KPI & Perbandingan', () => {
     await expect(page.getByText(/Tidak ada laporan banjir pada wilayah & rentang waktu yang dipilih/i)).toBeVisible();
     await expect(page.getByText(/Belum ada laporan/i)).toBeVisible({ timeout: 15_000 });
   });
+
+  test('TC-07: rentang waktu terbalik (from > to) tidak menyebabkan error', async ({ page }) => {
+    await login(page, 'admin');
+    // Sengaja memberikan from yang lebih baru dari to (reversed range).
+    await page.goto('/dashboard?from=2025-12-31&to=2025-01-01');
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 15_000 });
+
+    // Dashboard harus tetap me-render KPI cards tanpa crash / layar putih.
+    await expect(page.getByText('Total Laporan')).toBeVisible({ timeout: 15_000 });
+
+    // Dengan rentang terbalik, Supabase mengembalikan 0 baris dan trend loop kosong,
+    // sehingga KPI bernilai 0 dan empty state harus muncul.
+    const totalValue = page.locator('.card').filter({ hasText: 'Total Laporan' }).locator('p').last();
+    await expect(totalValue).toHaveText('0');
+
+    await expect(page.getByText(/Belum Ada Laporan/i)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/Tidak ada laporan banjir pada wilayah & rentang waktu yang dipilih/i)).toBeVisible();
+
+    // Pastikan tidak ada error JavaScript yang tidak tertangani.
+    const errors: string[] = [];
+    page.on('pageerror', (err) => errors.push(err.message));
+    // Beri waktu singkat untuk memastikan tidak ada error async yang muncul.
+    await page.waitForTimeout(2_000);
+    expect(errors, 'Terdapat JavaScript error pada halaman').toHaveLength(0);
+  });
+
+  test('TC-08: KPI Aktif bertambah setelah laporan baru dibuat', async ({ page }) => {
+    test.setTimeout(90_000);
+
+    // 1. Login sebagai admin dan buka dashboard.
+    await login(page, 'admin');
+    await page.goto('/dashboard');
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('Total Laporan')).toBeVisible({ timeout: 15_000 });
+
+    // 2. Catat nilai KPI "Aktif" saat ini.
+    const aktifCard = page.locator('.card').filter({ hasText: 'Aktif' }).first();
+    await expect(aktifCard).toBeVisible({ timeout: 15_000 });
+    const aktifValueBefore = parseInt(
+      (await aktifCard.locator('p').last().textContent()) ?? '0',
+      10,
+    );
+
+    // 3. Buat laporan baru via API (status otomatis = pending → masuk KPI "Aktif").
+    //    Menggunakan API langsung agar test tetap cepat tanpa melewati wizard 4 langkah.
+    const submitResponse = await page.request.post('/api/reports/submit', {
+      data: {
+        lat: -6.175000,
+        lng: 106.827000,
+        severity: 'ringan',
+        description: `TC-08 laporan integrasi KPI ${Date.now()}`,
+        water_height_cm: 15,
+        address: 'Jl. Test KPI Dashboard, Jakarta',
+        is_surge_receding: false,
+      },
+    });
+    const submitJson = await submitResponse.json();
+    expect(submitResponse.ok(), 'Gagal membuat laporan baru via API').toBe(true);
+    expect(submitJson.report_id).toBeTruthy();
+
+    // 4. Reload dashboard agar data terbaru diambil dari Supabase.
+    await page.goto('/dashboard');
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('Total Laporan')).toBeVisible({ timeout: 15_000 });
+
+    // 5. Verifikasi KPI "Aktif" bertambah minimal 1.
+    const aktifCardAfter = page.locator('.card').filter({ hasText: 'Aktif' }).first();
+    await expect(aktifCardAfter).toBeVisible({ timeout: 15_000 });
+    const aktifValueAfter = parseInt(
+      (await aktifCardAfter.locator('p').last().textContent()) ?? '0',
+      10,
+    );
+
+    expect(
+      aktifValueAfter,
+      `KPI Aktif seharusnya bertambah: sebelum=${aktifValueBefore}, sesudah=${aktifValueAfter}`,
+    ).toBeGreaterThan(aktifValueBefore);
+  });
 });
