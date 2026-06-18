@@ -12,6 +12,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { MapContainer, TileLayer, Polygon, Polyline, CircleMarker, useMapEvents, useMap } from 'react-leaflet';
 import { X, Undo2, Trash2, Save, Loader2, MapPinned, ClipboardPaste, Pencil } from 'lucide-react';
+import 'leaflet/dist/leaflet.css';
 
 type LatLng = [number, number];
 interface Geometry { type: string; coordinates: number[][][] | number[][][][] }
