@@ -51,6 +51,17 @@ const selectStyle: React.CSSProperties = {
   backgroundSize: '14px',
 };
 
+// Supabase PostgrestError sering ter-serialize jadi "{}" di console. Ringkas jadi
+// pesan terbaca (message/code/details/hint) agar penyebab error jelas saat debug.
+function describeError(e: unknown): string {
+  if (e && typeof e === 'object') {
+    const x = e as { message?: string; code?: string; details?: string; hint?: string };
+    const parts = [x.message, x.code, x.details, x.hint].filter(Boolean);
+    return parts.length ? parts.join(' · ') : JSON.stringify(e);
+  }
+  return String(e);
+}
+
 export default function ReportsPage() {
   const supabase = createClient();
 
@@ -152,7 +163,7 @@ export default function ReportsPage() {
     offsetRef.current = 0;
     const { data, error } = await buildQuery(0, PAGE_SIZE - 1);
     if (error) {
-      console.error('Error fetching reports:', error);
+      console.error('Error fetching reports:', describeError(error));
       setReports([]);
       setLoading(false);
       return;
@@ -174,7 +185,9 @@ export default function ReportsPage() {
     setLoadingMore(true);
     const from = offsetRef.current;
     const { data, error } = await buildQuery(from, from + PAGE_SIZE - 1);
-    if (!error && data) {
+    if (error) {
+      console.error('Error loading more reports:', describeError(error));
+    } else if (data) {
       const rows = data as ReportListItem[];
       setReports((prev) => [...prev, ...rows]);
       offsetRef.current = from + rows.length;
