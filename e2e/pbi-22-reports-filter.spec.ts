@@ -23,23 +23,44 @@ test.describe('PBI-22 — Filter & Pagination Laporan', () => {
     await expect(page.getByRole('heading', { name: 'Laporan Banjir' })).toBeVisible();
   });
 
-  test('TC-22: filter status = verified menyaring lalu reset mengembalikan daftar', async ({ page }) => {
-    await login(page, 'warga');
+  test('TC-22: filter status = ditolak menyaring daftar laporan', async ({ page }) => {
+    // Buka halaman /login dan isi kredensial
+    await page.goto('/login');
+    await page.getByPlaceholder(/Email/i).fill('warga@fs.id');
+    await page.getByPlaceholder(/Password/i).fill('123456');
+    await page.getByRole('button', { name: 'Masuk', exact: true }).click();
+
+    // Buka halaman /reports
     await page.goto('/reports');
+
+    // Pastikan heading “Laporan Banjir” tampil
     await expect(page.getByRole('heading', { name: 'Laporan Banjir' })).toBeVisible({ timeout: 15_000 });
 
-    const statusSelect = page.locator('select:has(option[value="verified"])').first();
-    await statusSelect.selectOption('verified');
-    await expect(page).toHaveURL(/status=verified/, { timeout: 10_000 });
+    // Pastikan kolom pencarian “Cari lokasi atau deskripsi...” tampil
+    await expect(page.getByPlaceholder(/Cari lokasi atau deskripsi/i)).toBeVisible();
 
-    // Hasil tersaring (badge "Terverifikasi" terlihat) ATAU empty-state filter; lalu reset.
-    await expect(
-      page.locator('.badge-status-verified').first()
-        .or(page.getByText(/Tidak ada laporan sesuai filter/i))
-    ).toBeVisible({ timeout: 15_000 });
+    // Pastikan dropdown filter keparahan, status, provinsi, dan urutan tampil
+    await expect(page.locator('select:has(option[value="ringan"])')).toBeVisible(); // Keparahan
+    await expect(page.locator('select:has(option[value="pending"])')).toBeVisible(); // Status
+    await expect(page.getByRole('combobox').first()).toBeVisible(); // Provinsi
+    await expect(page.locator('select:has(option[value="terbaru"])')).toBeVisible(); // Urutan
 
-    await page.getByRole('button', { name: /Reset filter/i }).first().click();
-    await expect(page).not.toHaveURL(/status=verified/, { timeout: 10_000 });
+    // Pilih filter status “Ditolak”
+    const statusSelect = page.locator('select:has(option[value="rejected"])').first();
+    await statusSelect.selectOption('rejected');
+
+    // Pastikan URL memuat parameter status=rejected
+    await expect(page).toHaveURL(/status=rejected/, { timeout: 10_000 });
+
+    // Pastikan daftar laporan yang tampil memiliki badge status “Ditolak”
+    await expect(page.locator('.badge-status-rejected').first()).toBeVisible({ timeout: 15_000 });
+
+
+    // Pastikan laporan dengan status selain “Ditolak” seperti “Pending” atau “Diverifikasi” tidak tampil
+    await expect(page.locator('.badge-status-pending')).toHaveCount(0);
+    await expect(page.locator('.badge-status-verified')).toHaveCount(0);
+
+    // Pastikan heading “Laporan Banjir” tetap tampil
     await expect(page.getByRole('heading', { name: 'Laporan Banjir' })).toBeVisible();
   });
 
@@ -66,5 +87,41 @@ test.describe('PBI-22 — Filter & Pagination Laporan', () => {
     await expect(
       page.getByText(/Semua laporan telah dimuat|Belum ada laporan|Laporan Banjir/i).first()
     ).toBeVisible({ timeout: 15_000 });
+  });
+
+  test('TC-55: pencarian kata kunci yang tidak ada hasil menampilkan empty state', async ({ page }) => {
+    // Buka halaman /login
+    await page.goto('/login');
+    await page.getByPlaceholder(/Email/i).fill('warga@fs.id');
+    await page.getByPlaceholder(/Password/i).fill('123456');
+    await page.getByRole('button', { name: 'Masuk', exact: true }).click();
+
+    // Buka halaman /reports
+    await page.goto('/reports');
+
+    // Pastikan heading “Laporan Banjir” tampil
+    await expect(page.getByRole('heading', { name: 'Laporan Banjir' })).toBeVisible({ timeout: 15_000 });
+
+    // Pilih filter status “Ditolak”
+    const statusSelect = page.locator('select:has(option[value="rejected"])').first();
+    await statusSelect.selectOption('rejected');
+
+    // Pastikan URL memuat parameter status=rejected
+    await expect(page).toHaveURL(/status=rejected/, { timeout: 10_000 });
+
+    // Ketik keyword pencarian yang tidak sesuai dengan data laporan
+    await page.getByPlaceholder(/Cari lokasi atau deskripsi/i).fill('xyzlaporantidakada999');
+
+    // Pastikan URL memuat parameter q=xyzlaporantidakada999
+    await expect(page).toHaveURL(/q=xyzlaporantidakada999/, { timeout: 10_000 });
+
+    // Pastikan sistem menampilkan pesan kosong seperti “Tidak ada laporan ditemukan”
+    await expect(page.getByText(/Tidak ada laporan sesuai filter/i)).toBeVisible({ timeout: 15_000 });
+
+    // Pastikan tidak ada card laporan yang tampil (mengabaikan toast notifikasi jika ada)
+    await expect(page.locator('a[href^="/report/"]:has(.badge)')).toHaveCount(0);
+
+    // Pastikan halaman tidak error dan heading “Laporan Banjir” tetap tampil
+    await expect(page.getByRole('heading', { name: 'Laporan Banjir' })).toBeVisible();
   });
 });
