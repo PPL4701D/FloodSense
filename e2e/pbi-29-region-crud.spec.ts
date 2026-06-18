@@ -27,6 +27,47 @@ test.describe('PBI-29 — Region CRUD Admin', () => {
     await page.getByPlaceholder(/Cari nama \/ kode/i).fill(provName);
     await page.waitForTimeout(1000);
     await expect(page.getByText(provName).first()).toBeVisible();
+
+    // Temukan baris data provinsi tersebut
+    const row = page.locator('.card').filter({ hasText: provName }).first();
+    await expect(row).toBeVisible();
+
+    // Buka editor Boundary
+    await row.getByRole('button', { name: /Boundary \(peta\)/i }).click();
+    await expect(page.getByRole('heading', { name: new RegExp(`Boundary — ${provName}`, 'i') })).toBeVisible({ timeout: 10_000 });
+    
+    // Interaksi Peta (Tambah Titik, Reset, Tambah, Undo, Tambah, Simpan)
+    const mapContainer = page.locator('.leaflet-container');
+    await expect(mapContainer).toBeVisible();
+    await page.waitForTimeout(1000); // Tunggu map tiles load
+
+    // Tambah 3 titik
+    await mapContainer.click({ position: { x: 100, y: 100 } });
+    await mapContainer.click({ position: { x: 200, y: 100 } });
+    await mapContainer.click({ position: { x: 150, y: 200 } });
+    await expect(page.getByText(/3 titik/i)).toBeVisible();
+
+    // Uji fungsi Reset
+    await page.getByRole('button', { name: /Reset/i }).click();
+    await expect(page.getByText(/0 titik/i)).toBeVisible();
+
+    // Tambah 3 titik baru
+    await mapContainer.click({ position: { x: 120, y: 120 } });
+    await mapContainer.click({ position: { x: 220, y: 120 } });
+    await mapContainer.click({ position: { x: 170, y: 220 } });
+    await expect(page.getByText(/3 titik/i)).toBeVisible();
+
+    // Uji fungsi Undo (harus jadi 2 titik)
+    await page.getByRole('button', { name: /Undo/i }).click();
+    await expect(page.getByText(/2 titik/i)).toBeVisible();
+
+    // Tambah 1 titik lagi (menjadi 3 titik untuk memenuhi syarat polygon)
+    await mapContainer.click({ position: { x: 120, y: 220 } });
+    await expect(page.getByText(/3 titik/i)).toBeVisible();
+
+    // Simpan Boundary
+    await page.getByRole('button', { name: /Simpan Boundary/i }).click();
+    await expect(page.getByText(/Boundary tersimpan/i)).toBeVisible({ timeout: 10_000 });
   });
 
   test('TC-06a: Keamanan Akses - Warga Ditolak Akses Admin', async ({ page }) => {
