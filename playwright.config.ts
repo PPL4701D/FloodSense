@@ -1,4 +1,22 @@
 import { defineConfig, devices } from '@playwright/test';
+import { readFileSync, existsSync } from 'fs';
+import { join } from 'path';
+
+// Muat .env.local ke process.env agar spec E2E yang butuh service-role Supabase
+// (mis. pbi-16-push, pbi-26-recheck) dapat membaca env — Playwright tidak otomatis
+// memuat .env.local seperti Next. Hanya mengisi key yang belum ada di process.env.
+const envLocalPath = join(process.cwd(), '.env.local');
+if (existsSync(envLocalPath)) {
+  for (const line of readFileSync(envLocalPath, 'utf8').split('\n')) {
+    const t = line.trim();
+    if (!t || t.startsWith('#')) continue;
+    const eq = t.indexOf('=');
+    if (eq === -1) continue;
+    const key = t.slice(0, eq).trim();
+    const val = t.slice(eq + 1).trim().replace(/^['"]|['"]$/g, '');
+    if (!(key in process.env)) process.env[key] = val;
+  }
+}
 
 /**
  * Konfigurasi Playwright E2E — FloodSense (Sprint 1).
