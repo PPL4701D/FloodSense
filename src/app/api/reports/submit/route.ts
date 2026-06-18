@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { sendEmail, buildNewReportEmail } from '@/lib/email/resend';
 import { resolveRegionId } from '@/lib/geo/resolveRegion';
 import { sendWebPushToUsers } from '@/lib/push/send';
@@ -110,6 +110,11 @@ export async function POST(req: NextRequest) {
     const baseUrl = req.nextUrl.origin;
     fetch(`${baseUrl}/api/reports/${report.id}/credibility`, { method: 'POST' }).catch(() => {});
 
+    // Side-effect best-effort (notifikasi proximity + email staf) dijalankan SETELAH
+    // response terkirim via after(), agar submit pengguna tidak terblokir — mencegah
+    // infinite loading saat Resend/web-push lambat. Pembuatan laporan & upload foto
+    // (dilakukan klien setelah menerima report_id) tidak terpengaruh.
+    after(async () => {
     // FR-037: Notify users whose monitoring points are within radius of the new report
     try {
       const adminSupabase = createAdminClient();
@@ -215,6 +220,7 @@ export async function POST(req: NextRequest) {
         console.error('Staff email alert exception:', e instanceof Error ? e.message : String(e));
       }
     }
+    });
 
     return NextResponse.json({
       success: true,
