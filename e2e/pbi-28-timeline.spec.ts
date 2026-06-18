@@ -91,36 +91,150 @@ test.describe('PBI-28 — Timeline Status Laporan', () => {
     });
   });
 
-  test('TC-01: Validasi Tampilan Utama Laporan (Gabungan: Tampil Timeline, Warna Label, Load Foto)', async ({ page }) => {
-    await login(page, 'warga');
-
-    await page.route('**/storage/v1/object/public/flood-photos/mock.jpg*', async route => {
-      // 1px transparent gif
-      const buf = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
-      await route.fulfill({ status: 200, contentType: 'image/gif', body: buf });
-    });
-
-    await page.goto(`/report/${UUID_PENDING}`);
-
-    await expect(page.getByText(/Status Laporan|Menunggu Verifikasi/i).first()).toBeVisible({ timeout: 15_000 });
+  test('TC-01: Warga Lapor -> Admin Approve -> Warga Cek Timeline', async ({ browser }) => {
+    // ==========================================
+    // 1. Warga Buat Laporan
+    // ==========================================
+    const wargaContext = await browser.newContext();
+    const wargaPage = await wargaContext.newPage();
+    await login(wargaPage, 'warga');
     
-    // Cek label tingkat keparahan (Berat)
-    const severityLabel = page.getByText(/Berat/i).first();
-    await expect(severityLabel).toBeVisible();
+    await wargaPage.goto('/report/new');
+    await wargaPage.waitForTimeout(3000); // Tunggu map/GPS loading
+    
+    // Step 1: Lokasi
+    await wargaPage.getByRole('button', { name: /Lanjut/i }).first().click();
+    
+    // Step 2: Keparahan
+    await wargaPage.getByText('Berat', { exact: true }).click();
+    await wargaPage.getByLabel(/Deskripsi/i).fill('Test E2E Approved - ' + Date.now());
+    await wargaPage.getByRole('button', { name: /Lanjut ke Foto/i }).click();
+    
+    // Step 3: Foto (Skip)
+    await wargaPage.getByRole('button', { name: /Lewati/i }).click();
+    
+    // Step 4: Kirim
+    await wargaPage.getByRole('button', { name: /Kirim Laporan/i }).click();
+    await expect(wargaPage.getByText('Laporan Terkirim!')).toBeVisible({ timeout: 20_000 });
+    
+    // Cari URL laporan yang baru dibuat dari daftar laporan
+    await wargaPage.goto('/reports');
+    await wargaPage.waitForTimeout(3000); 
+    const reportLink = wargaPage.locator('a[href^="/report/"]').first();
+    await expect(reportLink).toBeVisible({ timeout: 15_000 });
+    const reportUrl = await reportLink.getAttribute('href');
+    
+    // LOGOUT Warga (Tutup Jendela)
+    await wargaContext.close();
 
-    const img = page.locator('img[alt*="Foto"]').first();
-    await expect(img).toBeVisible();
+    // ==========================================
+    // 2. Admin Verifikasi (Approved)
+    // ==========================================
+    const adminContext = await browser.newContext();
+    const adminPage = await adminContext.newPage();
+    await login(adminPage, 'admin');
+    
+    await adminPage.goto(reportUrl!);
+    await expect(adminPage.getByRole('heading', { name: /Detail Laporan/i })).toBeVisible({ timeout: 15_000 });
+    
+    // Admin melakukan approve
+    await adminPage.getByText('Setujui Laporan').click();
+    await adminPage.getByPlaceholder(/Jelaskan alasan/i).fill('Sudah dicek lapangan, laporan ini valid.');
+    await adminPage.getByRole('button', { name: /Kirim Keputusan Verifikasi/i }).click();
+    
+    await expect(adminPage.getByText(/Laporan Berhasil Diverifikasi/i)).toBeVisible({ timeout: 15_000 });
+    
+    // LOGOUT Admin (Tutup Jendela)
+    await adminContext.close();
+
+    // ==========================================
+    // 3. Warga Cek Status Timeline
+    // ==========================================
+    const wargaContext2 = await browser.newContext();
+    const wargaPage2 = await wargaContext2.newPage();
+    await login(wargaPage2, 'warga');
+    
+    await wargaPage2.goto(reportUrl!);
+    await expect(wargaPage2.getByRole('heading', { name: /Detail Laporan/i })).toBeVisible({ timeout: 15_000 });
+    
+    // Cek Timeline & Status berubah jadi Terverifikasi
+    await expect(wargaPage2.getByText('Terverifikasi').first()).toBeVisible({ timeout: 10_000 });
+    await expect(wargaPage2.getByText(/Sudah dicek lapangan, laporan ini valid/i)).toBeVisible();
+    
+    await wargaContext2.close();
   });
 
-  test('TC-02: Validasi Riwayat Verifikasi dan Penolakan (Gabungan: Cek Status Verified & Rejected)', async ({ page }) => {
-    await login(page, 'warga');
+  test('TC-02: Warga Lapor -> Admin Reject -> Warga Cek Timeline', async ({ browser }) => {
+    // ==========================================
+    // 1. Warga Buat Laporan
+    // ==========================================
+    const wargaContext = await browser.newContext();
+    const wargaPage = await wargaContext.newPage();
+    await login(wargaPage, 'warga');
     
-    await page.goto(`/report/${UUID_VERIFIED}`);
-    await expect(page.getByText(/Terverifikasi/i).first()).toBeVisible({ timeout: 15_000 });
+    await wargaPage.goto('/report/new');
+    await wargaPage.waitForTimeout(3000); // Tunggu map/GPS loading
     
-    await page.goto(`/report/${UUID_REJECTED}`);
-    await expect(page.getByText(/Ditolak/i).first()).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText(/Catatan simulasi/i).first()).toBeVisible();
+    // Step 1: Lokasi
+    await wargaPage.getByRole('button', { name: /Lanjut/i }).first().click();
+    
+    // Step 2: Keparahan
+    await wargaPage.getByText('Ringan', { exact: true }).click();
+    await wargaPage.getByLabel(/Deskripsi/i).fill('Test E2E Rejected - ' + Date.now());
+    await wargaPage.getByRole('button', { name: /Lanjut ke Foto/i }).click();
+    
+    // Step 3: Foto (Skip)
+    await wargaPage.getByRole('button', { name: /Lewati/i }).click();
+    
+    // Step 4: Kirim
+    await wargaPage.getByRole('button', { name: /Kirim Laporan/i }).click();
+    await expect(wargaPage.getByText('Laporan Terkirim!')).toBeVisible({ timeout: 20_000 });
+    
+    // Cari URL laporan yang baru dibuat dari daftar laporan
+    await wargaPage.goto('/reports');
+    await wargaPage.waitForTimeout(3000); 
+    const reportLink = wargaPage.locator('a[href^="/report/"]').first();
+    await expect(reportLink).toBeVisible({ timeout: 15_000 });
+    const reportUrl = await reportLink.getAttribute('href');
+    
+    // LOGOUT Warga (Tutup Jendela)
+    await wargaContext.close();
+
+    // ==========================================
+    // 2. Admin Verifikasi (Rejected)
+    // ==========================================
+    const adminContext = await browser.newContext();
+    const adminPage = await adminContext.newPage();
+    await login(adminPage, 'admin');
+    
+    await adminPage.goto(reportUrl!);
+    await expect(adminPage.getByRole('heading', { name: /Detail Laporan/i })).toBeVisible({ timeout: 15_000 });
+    
+    // Admin melakukan penolakan (Reject)
+    await adminPage.getByText('Tolak Laporan (Palsu)').click();
+    await adminPage.getByPlaceholder(/Jelaskan alasan/i).fill('Laporan palsu / Hoax.');
+    await adminPage.getByRole('button', { name: /Kirim Keputusan Verifikasi/i }).click();
+    
+    await expect(adminPage.getByText(/Laporan Berhasil Diverifikasi/i)).toBeVisible({ timeout: 15_000 });
+    
+    // LOGOUT Admin (Tutup Jendela)
+    await adminContext.close();
+
+    // ==========================================
+    // 3. Warga Cek Status Timeline
+    // ==========================================
+    const wargaContext2 = await browser.newContext();
+    const wargaPage2 = await wargaContext2.newPage();
+    await login(wargaPage2, 'warga');
+    
+    await wargaPage2.goto(reportUrl!);
+    await expect(wargaPage2.getByRole('heading', { name: /Detail Laporan/i })).toBeVisible({ timeout: 15_000 });
+    
+    // Cek Timeline & Status berubah jadi Ditolak
+    await expect(wargaPage2.getByText('Ditolak').first()).toBeVisible({ timeout: 10_000 });
+    await expect(wargaPage2.getByText(/Laporan palsu \/ Hoax/i)).toBeVisible();
+    
+    await wargaContext2.close();
   });
 
   test('TC-03: Validasi Laporan Tanpa Data Utuh (Gabungan: Laporan Tanpa Foto & Lokasi Error)', async ({ page }) => {
