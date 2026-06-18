@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
@@ -102,24 +103,25 @@ export async function POST(req: NextRequest) {
     if (report) {
       const reputationDelta = decision === 'verified' ? 1 : decision === 'rejected' ? -1 : 0;
       if (reputationDelta !== 0) {
-        try {
-          await supabase.rpc('increment_reputation', {
-            user_id: report.reporter_id,
-            delta: reputationDelta,
-          });
-        } catch {
-          // Fallback: direct update if RPC not available
-          const { data: profile } = await supabase
+        // Pakai ADMIN client (service role): menambah reputasi PELAPOR (bukan profil staf
+        // sendiri) tak boleh terblok RLS. Catatan: RPC increment_reputation tidak tersedia,
+        // dan supabase-js TIDAK melempar error saat RPC gagal — sehingga fallback lama tak
+        // pernah berjalan. Di sini langsung baca-tulis via service role + cek error.
+        const admin = createAdminClient();
+        const { data: profile, error: readErr } = await admin
+          .from('profiles')
+          .select('reputation_score')
+          .eq('id', report.reporter_id)
+          .single();
+        if (readErr) {
+          console.error('Gagal membaca reputasi pelapor:', readErr.message);
+        } else if (profile) {
+          const current = (profile as { reputation_score: number | null }).reputation_score ?? 0;
+          const { error: updErr } = await admin
             .from('profiles')
-            .select('reputation_score')
-            .eq('id', report.reporter_id)
-            .single();
-          if (profile) {
-            await supabase
-              .from('profiles')
-              .update({ reputation_score: ((profile as Record<string, unknown>).reputation_score as number || 0) + reputationDelta })
-              .eq('id', report.reporter_id);
-          }
+            .update({ reputation_score: current + reputationDelta })
+            .eq('id', report.reporter_id);
+          if (updErr) console.error('Gagal update reputasi pelapor:', updErr.message);
         }
       }
     }
