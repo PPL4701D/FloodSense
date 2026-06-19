@@ -98,14 +98,19 @@ export default function ReportsPage() {
     hydrated.current = true;
   }, []);
 
-  // --- Wilayah turunan untuk filter hierarkis (provinsi → kab/kota → kecamatan) ---
+  // --- Wilayah turunan untuk filter hierarkis (provinsi → kab/kota) ---
+  // Laporan ber-region_id KABUPATEN. Memuat SELURUH turunan (satu provinsi punya
+  // ratusan kecamatan) ke .in() membuat URL melebihi batas server → HTTP 414 →
+  // laporan tidak keluar. Cukup wilayah terpilih + anak LANGSUNGNYA (provinsi →
+  // kabupaten/kota) agar daftar id tetap pendek & URL aman.
   useEffect(() => {
     if (regionId === 'all') { setDescIds(null); return; }
     let cancelled = false;
     (async () => {
-      const { data } = await supabase.rpc('region_descendant_ids', { p_region: regionId });
+      const { data } = await supabase.from('regions').select('id').eq('parent_id', regionId);
       if (cancelled) return;
-      setDescIds(((data as Array<{ id: string }> | null) ?? []).map((r) => r.id));
+      const childIds = ((data as Array<{ id: string }> | null) ?? []).map((r) => r.id);
+      setDescIds([regionId, ...childIds]);
     })();
     return () => { cancelled = true; };
   }, [regionId, supabase]);
